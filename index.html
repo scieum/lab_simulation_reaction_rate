@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lab:Simulation — 반응 속도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================
+     1. 폰트 및 기본 설정 (Base & Typography)
+     Pretendard — https://github.com/orioncactus/pretendard
+     ========================================= */
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css");
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+  :root {
+    --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
+      system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo",
+      "Noto Sans KR", "Malgun Gothic", sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+    --primary-color: #4f46e5; /* Indigo-600 */
+    --primary-hover: #4338ca; /* Indigo-700 */
+    --bg-color: #f8fafc;      /* Slate-50 */
+    --text-main: #334155;     /* Slate-700 */
+    --text-sub: #64748b;      /* Slate-500 */
+    --text-strong: #0f172a;
+    --border-color: #e2e8f0;  /* Slate-200 */
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --lcd-bg: #0b1220;
+    --lcd-green: #4ade80;
+    --lcd-amber: #fbbf24;
+    --acid-color: #dbeafe;
+    --bubble-color: #e0f2fe;
+    --secant-color: #f59e0b;
+    --tangent-color: #ef4444;
+  }
+
+  /* 모든 요소에 Pretendard 적용 (button/input/select/textarea는 기본 상속 안 됨) */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+  }
+
+  /* 모노스페이스가 필요한 요소는 예외 처리 */
+  code, pre, kbd, samp,
+  .lcd .display,
+  .formula-box code,
+  #sensorText,
+  [font-family*="JetBrains"],
+  [font-family*="Mono"] {
+    font-family: var(--font-mono);
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    min-height: 100vh;
+    font-weight: 400;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss06";
+  }
+
+  h1 { font-weight: 800; letter-spacing: -0.02em; color: var(--text-strong); }
+  h2 { font-weight: 700; letter-spacing: -0.015em; color: var(--text-strong); }
+  h3 { font-weight: 700; letter-spacing: -0.01em; color: var(--text-strong); }
+  h4 { font-weight: 600; color: var(--text-strong); }
+  strong, b { font-weight: 700; }
+  small { font-size: 0.8rem; color: var(--text-sub); }
+  .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* 작은 라벨 텍스트 스타일 (통일) */
+  .label-xs {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sub);
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  /* =========================================
+     2. UI 컴포넌트 (UI Components)
+     ========================================= */
+  .app {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: clamp(20px, 2.5vw, 36px) clamp(16px, 3vw, 48px) clamp(32px, 4vw, 60px);
+    min-height: 100vh;
+  }
+
+  /* ===== Screens ===== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== Home (랜딩 페이지) — 화면 꽉 채우고 viewport에 반응 ===== */
+  #screen-home.active {
+    min-height: calc(100vh - 72px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .home-wrap {
+    position: relative;
+    z-index: 1;
+    padding: clamp(20px, 3vw, 48px) 0 clamp(16px, 2vw, 32px);
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .home-header {
+    text-align: center;
+    padding: clamp(20px, 4vw, 48px) clamp(16px, 3vw, 32px) clamp(32px, 5vw, 64px);
+    position: relative;
+  }
+  .home-header .eyebrow {
+    display: inline-block;
+    color: var(--primary-color);
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .home-header h1.brand {
+    font-size: clamp(3.2rem, 7vw, 5rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1.0;
+    margin: 0 0 18px;
+    color: var(--text-strong);
+  }
+  .home-header h2.subject {
+    font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 32px;
+    letter-spacing: -0.02em;
+  }
+  .home-header p.lead {
+    color: var(--text-sub);
+    font-weight: 500;
+    font-size: 0.98rem;
+    margin: 0 auto;
+    line-height: 1.85;
+    max-width: 560px;
+  }
+
+  .lab-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(16px, 2vw, 32px);
+    margin-top: 10px;
+    padding: 0 clamp(8px, 1.5vw, 16px);
+  }
+  @media (max-width: 860px), (max-aspect-ratio: 3/4) {
+    .lab-menu-grid { grid-template-columns: 1fr; }
+  }
+
+  .lab-card {
+    appearance: none;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 24px -8px rgba(15, 23, 42, 0.08);
+    padding: clamp(24px, 2.5vw, 40px) clamp(22px, 2.3vw, 36px);
+    text-align: left;
+    cursor: pointer;
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .lab-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--card-hover-bg, transparent);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .lab-card > * { position: relative; z-index: 1; }
+  .lab-card:hover:not([disabled]) {
+    transform: translateY(-6px);
+  }
+  .lab-card:hover:not([disabled])::before { opacity: 1; }
+  .lab-card:active:not([disabled]) { transform: translateY(-2px) scale(0.995); }
+  .lab-card[disabled] { cursor: not-allowed; }
+
+  /* Lab 1 — 블루 계열 호버 (우측 상단 엷은 글로우) */
+  .lab-card.theme-blue {
+    --card-hover-bg: radial-gradient(ellipse 70% 60% at 100% 0%, rgba(191, 219, 254, 0.55) 0%, rgba(191, 219, 254, 0.15) 40%, transparent 72%);
+    --card-accent: #2563eb;
+    --card-accent-soft: #bfdbfe;
+  }
+  /* Lab 2 — 그린 계열 호버 (우측 상단 엷은 글로우) */
+  .lab-card.theme-green {
+    --card-hover-bg: radial-gradient(ellipse 70% 60% at 100% 0%, rgba(187, 247, 208, 0.55) 0%, rgba(187, 247, 208, 0.15) 40%, transparent 72%);
+    --card-accent: #16a34a;
+    --card-accent-soft: #bbf7d0;
+  }
+  .lab-card.theme-blue:hover:not([disabled]) {
+    border-color: var(--card-accent-soft);
+    box-shadow: 0 18px 36px -16px rgba(37, 99, 235, 0.2);
+  }
+  .lab-card.theme-green:hover:not([disabled]) {
+    border-color: var(--card-accent-soft);
+    box-shadow: 0 18px 36px -16px rgba(22, 163, 74, 0.2);
+  }
+  .lab-card.theme-blue:hover:not([disabled]) h3,
+  .lab-card.theme-blue:hover:not([disabled]) .arrow,
+  .lab-card.theme-green:hover:not([disabled]) h3,
+  .lab-card.theme-green:hover:not([disabled]) .arrow {
+    color: var(--card-accent);
+  }
+
+  .lab-card .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-sub);
+    background: rgba(241, 245, 249, 0.9);
+    padding: 5px 12px;
+    border-radius: 999px;
+    width: fit-content;
+    margin-bottom: 6px;
+    transition: color 0.25s, background 0.25s;
+  }
+  .lab-card h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+    transition: color 0.25s;
+  }
+  .lab-card p {
+    margin: 0;
+    color: var(--text-sub);
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+  .lab-card .spacer { flex: 1; }
+  .lab-card .arrow {
+    font-size: 0.92rem;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.25s, gap 0.25s;
+  }
+  .lab-card:hover:not([disabled]) .arrow { gap: 12px; }
+
+  /* 홈 푸터 */
+  .home-footer {
+    text-align: center;
+    padding: 60px 20px 20px;
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .notion-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: var(--text-sub);
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    position: relative;
+  }
+  .notion-link:hover {
+    color: var(--text-strong);
+    background: #ffffff;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15,23,42,0.08);
+  }
+  .notion-link svg { display: block; }
+
+  /* 툴팁: 오류 문의 */
+  .notion-link::before {
+    content: '오류 문의';
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: #0f172a;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.2);
+  }
+  .notion-link::after {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border: 5px solid transparent;
+    border-top-color: #0f172a;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .notion-link:hover::before,
+  .notion-link:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ===== Back button ===== */
+  .btn-back {
+    appearance: none;
+    background: transparent;
+    border: 1.5px solid var(--border-color);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    margin-bottom: 18px;
+    transition: all 0.15s;
+  }
+  .btn-back:hover { background: white; border-color: var(--text-sub); }
+
+  /* 분석 화면 상단바 (뒤로 + HOME 나란히) */
+  .analysis-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .analysis-topbar .btn-back { margin-bottom: 0; }
+
+  /* ===== Lab header ===== */
+  .lab-header { margin-bottom: 18px; }
+  .lab-header h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2.4vw, 1.8rem); }
+  .lab-header p { margin: 0; color: var(--text-sub); font-weight: 450; }
+
+  /* ===== Module grid — 적절한 크기 + 비율 반응형 ===== */
+  .module-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, clamp(280px, 22vw, 340px)) 1fr;
+    gap: clamp(16px, 1.5vw, 24px);
+    align-items: stretch;
+  }
+  /* 세로형 / 좁은 화면: 1열 스택 */
+  @media (max-width: 900px), (max-aspect-ratio: 3/4) {
+    .module-grid {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+  }
+  /* 초광폭 모니터 */
+  @media (min-width: 1600px) {
+    .module-grid { grid-template-columns: minmax(320px, 380px) 1fr; }
+  }
+
+  /* 통합 패널 스타일 (유리 질감 + 깔끔한 테두리) */
+  .ui-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: clamp(16px, 1.4vw, 24px);
+    transition: all 0.3s ease;
+    overflow-y: auto;
+  }
+  .ui-panel h3 { margin: 0 0 14px; font-size: 1.05rem; }
+  .panel-section { margin-bottom: 18px; }
+  .panel-section:last-child { margin-bottom: 0; }
+  .panel-section .label-xs { display: block; margin-bottom: 0.5rem; }
+
+  /* ===== Reaction info ===== */
+  .reaction-eq {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-strong);
+    letter-spacing: -0.01em;
+  }
+  .reaction-eq .sub { font-size: 0.78em; vertical-align: -0.25em; }
+
+  /* ===== Selection cards (speed) ===== */
+  .selection-card-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .selection-card {
+    appearance: none;
+    cursor: pointer;
+    position: relative;
+    height: 100%;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    background: white;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--text-main);
+    text-align: center;
+    font-size: 0.95rem;
+    user-select: none;
+  }
+  .selection-card:hover { border-color: #94a3b8; }
+  .selection-card.active {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 1px #94a3b8;
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+
+  /* ===== Buttons ===== */
+  .btn-press {
+    appearance: none;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    user-select: none;
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .btn-press:hover:not(:disabled) { background: var(--primary-hover); }
+  .btn-press:active:not(:disabled) { transform: scale(0.96); }
+  .btn-press:disabled { background: #cbd5e1; cursor: not-allowed; }
+  .btn-secondary {
+    background: white;
+    color: var(--text-main);
+    border: 1.5px solid var(--border-color);
+  }
+  .btn-secondary:hover:not(:disabled) { background: #f1f5f9; border-color: var(--text-sub); }
+
+  /* 실행 중 일시정지 버튼 강조 (앰버) */
+  .btn-press.btn-warn { background: #f59e0b; }
+  .btn-press.btn-warn:hover:not(:disabled) { background: #d97706; }
+
+  /* 실험 완료 후 분석 보기 버튼 강조 (그린) */
+  .btn-press.btn-success { background: #10b981; }
+  .btn-press.btn-success:hover:not(:disabled) { background: #059669; }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* ===== Stopwatch / Pressure display ===== */
+  .lcd-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .lcd {
+    background: var(--lcd-bg);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 6px 14px rgba(15,23,42,0.18), inset 0 0 0 2px #334155;
+    text-align: center;
+  }
+  .lcd .label-xs {
+    color: #64748b;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .lcd .display {
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .lcd.stopwatch .display {
+    color: var(--lcd-green);
+    text-shadow: 0 0 8px rgba(74,222,128,0.5);
+  }
+  .lcd.pressure .display {
+    color: var(--lcd-amber);
+    text-shadow: 0 0 8px rgba(251,191,36,0.5);
+  }
+
+  /* ===== Canvas (experiment SVG) — 적절한 크기로 제한 ===== */
+  .canvas-container {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    border: 1px solid #cbd5e1;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.02);
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(380px, 42vh, 500px);
+    padding: clamp(12px, 1.5vw, 20px);
+  }
+  canvas { display: block; outline: none; }
+  #lab1-svg {
+    width: 100%;
+    height: auto;
+    max-width: 620px;
+    max-height: 100%;
+    user-select: none;
+  }
+
+  /* ===== Analysis panel ===== */
+  .analysis-panel {
+    margin-top: clamp(12px, 1.5vw, 22px);
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    border-radius: 1.25rem;
+    padding: clamp(16px, 2vw, 28px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    min-height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-aspect-ratio: 3/4) { .analysis-panel { min-height: auto; } }
+  .analysis-panel[hidden] { display: none; }
+  .analysis-panel h3 {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+  }
+  .analysis-panel .subtle {
+    margin: 0 0 16px;
+    color: var(--text-sub);
+    font-size: 0.9rem;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 18px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 11px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.18s ease;
+  }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 700;
+  }
+
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr minmax(260px, clamp(280px, 24vw, 360px));
+    gap: clamp(16px, 1.8vw, 28px);
+    flex: 1;
+    align-items: stretch;
+  }
+  @media (max-width: 960px), (max-aspect-ratio: 3/4) {
+    .analysis-grid { grid-template-columns: 1fr; }
+  }
+
+  .analysis-grid > div:first-child {
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+  }
+
+  #lab1-graph {
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    max-height: calc(100vh - 300px);
+    background: white;
+    border-radius: 10px;
+    flex: 1;
+  }
+
+  /* Graph element styles */
+  .graph-axis { stroke: #475569; stroke-width: 1.2; fill: none; }
+  .graph-grid { stroke: #e2e8f0; stroke-dasharray: 2 3; stroke-width: 1; fill: none; }
+  .graph-tick-text { fill: var(--text-sub); font-size: 11px; font-weight: 500; }
+  .graph-axis-label { fill: var(--text-main); font-size: 12px; font-weight: 700; }
+  .graph-curve { fill: none; stroke: var(--primary-color); stroke-width: 2.5; }
+  .graph-point { fill: white; stroke: var(--primary-color); stroke-width: 2; }
+  .graph-point.dim { stroke: #94a3b8; }
+  .graph-hit { fill: transparent; pointer-events: all; cursor: crosshair; }
+  .drag-handle { fill: var(--primary-color); stroke: white; stroke-width: 2; cursor: ew-resize;
+    filter: drop-shadow(0 2px 4px rgba(79,70,229,0.35)); }
+  .drag-guide { stroke: var(--primary-color); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.6; }
+  .secant-line { stroke: var(--secant-color); stroke-width: 2.5; stroke-dasharray: 6 4; }
+  .secant-point { fill: var(--secant-color); stroke: white; stroke-width: 2; }
+  .tangent-line { stroke: var(--tangent-color); stroke-width: 2.5; }
+  .tangent-point { fill: var(--tangent-color); stroke: white; stroke-width: 2; }
+  .region-fill { fill: var(--primary-color); opacity: 0.06; }
+  .handle-label {
+    font-size: 11px; font-weight: 700; fill: var(--primary-color);
+    text-anchor: middle; pointer-events: none;
+  }
+
+  /* Result cards */
+  .analysis-side { display: flex; flex-direction: column; gap: 10px; }
+  .mode-hint {
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .result-card {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .result-card .label-xs { display: block; margin-bottom: 6px; }
+  .result-card .big {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-strong);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .result-card .unit {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-left: 4px;
+  }
+  .result-card.primary {
+    background: #eef2ff;
+  }
+  .result-card.primary .big { color: var(--primary-color); }
+
+  .range-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+  }
+  .range-controls .rc {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .range-controls .rc label { font-size: 0.8rem; color: var(--text-sub); font-weight: 600; }
+  .range-controls .rc .vbox {
+    background: white;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-color);
+    text-align: center;
+  }
+
+  .formula-box {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: #7c2d12;
+    line-height: 1.65;
+  }
+  .formula-box code {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.85em;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  .formula-toggle {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+  }
+
+  /* Coming soon */
+  .coming-soon-card {
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px dashed var(--border-color);
+    border-radius: 1.25rem;
+    padding: 60px 30px;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+  .coming-soon-card .big-emoji { font-size: 2.4rem; margin-bottom: 14px; }
+  .coming-soon-card h2 { margin: 0 0 10px; }
+  .coming-soon-card p { margin: 0; color: var(--text-sub); }
+
+  /* ===== Bubble animation (SVG) ===== */
+  @keyframes bubble-rise {
+    0%   { transform: translateY(0);     opacity: 0.85; }
+    80%  { opacity: 0.7; }
+    100% { transform: translateY(-60px); opacity: 0; }
+  }
+
+  /* SVG transform-origin이 요소 자체 기준으로 동작하도록 (Mg 리본 shrink) */
+  .mg-ribbon {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+  }
+
+  /* =========================================
+     3. 유틸리티 & 상태 (Utilities & States)
+     ========================================= */
+  .hidden-screen { display: none !important; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* =========================================
+     4. 애니메이션 (Animations)
+     ========================================= */
+  .fade-in { animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .toast-enter { animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
+  @keyframes slideUp {
+    from { transform: translate(-50%, 100%); opacity: 0; }
+    to   { transform: translate(-50%, 0); opacity: 1; }
+  }
+
+  /* 강조 펄스 링 (주요 CTA 용) */
+  .animate-pulse-ring { animation: pulse-ring 2s infinite; }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+  }
+
+  /* 배경 블롭 (메인 메뉴용) */
+  .bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+    animation: blob-float 7s infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes blob-float {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    33%  { transform: translate(30px, -50px) scale(1.1); }
+    66%  { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  .delay-2000 { animation-delay: 2s; }
+  .delay-4000 { animation-delay: 4s; }
+  .bg-blob { filter: blur(80px); opacity: 0.55; }
+  .bg-blob.b1 { width: 560px; height: 560px; background: #ddd6fe; top: -180px; left: -160px; }
+  .bg-blob.b2 { width: 520px; height: 520px; background: #bfdbfe; top: 15%; right: -180px; }
+  .bg-blob.b3 { width: 420px; height: 420px; background: #e9d5ff; bottom: -160px; left: 15%; }
+
+  .home-wrap { position: relative; z-index: 1; }
+
+  footer {
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.82rem;
+    color: var(--text-sub);
+    font-weight: 450;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================================= HOME -->
+  <section id="screen-home" class="screen active">
+    <div class="home-wrap">
+      <div class="bg-blob b1"></div>
+      <div class="bg-blob b2 delay-2000"></div>
+      <div class="bg-blob b3 delay-4000"></div>
+      <header class="home-header fade-in">
+        <span class="eyebrow">VIRTUAL SCIENCE LAB</span>
+        <h1 class="brand">Lab:Simulation</h1>
+        <h2 class="subject">반응 속도</h2>
+        <p class="lead">
+          가상 실험실에 오신 것을 환영합니다.<br>
+          원하는 실험 주제를 선택하세요.
+        </p>
+      </header>
+      <div class="lab-menu-grid">
+        <button class="lab-card theme-blue fade-in" data-go="lab1" style="animation-delay:0.1s;">
+          <span class="tag">Chemistry</span>
+          <h3>Lab 1. 마그네슘과 묽은 염산의 반응</h3>
+          <p>압력 센서로 시간에 따른 수소 기체의 압력을 측정하고, 평균·순간·초기 반응 속도를 구합니다.</p>
+          <div class="spacer"></div>
+          <span class="arrow">실험 시작하기 &nbsp;→</span>
+        </button>
+        <button class="lab-card theme-green fade-in" data-go="lab2" style="animation-delay:0.2s;">
+          <span class="tag">Chemistry</span>
+          <h3>Lab 2. 반응물의 농도와 반응 속도</h3>
+          <p>반응물의 농도를 달리하여 반응 속도가 어떻게 변하는지 비교해 봅니다.</p>
+          <div class="spacer"></div>
+          <span class="arrow">실험 시작하기 &nbsp;→</span>
+        </button>
+      </div>
+      <div class="home-footer">
+        © 2026 사이음(sci_eum). 과학의 사이, 사람을 잇다.
+        <a href="https://knuechem13.notion.site/ebd/2ba137a305b880fbac23d7b204098e51" target="_blank" rel="noopener noreferrer" class="notion-link" aria-label="오류 문의">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466l1.823 1.447zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952l1.448.327s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933l3.222-.187z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= LAB 1 -->
+  <section id="screen-lab1" class="screen">
+    <button class="btn-back" data-go="home">← HOME</button>
+    <header class="lab-header">
+      <h1>Lab 1. 마그네슘과 묽은 염산의 반응</h1>
+      <p>압력 센서로 시간에 따른 수소 기체의 압력을 측정합니다.</p>
+    </header>
+
+    <div class="module-grid">
+      <aside class="ui-panel">
+
+        <div class="panel-section">
+          <span class="label-xs">반응식</span>
+          <div class="reaction-eq">
+            Mg(s) + 2HCl(aq) → MgCl<span class="sub">2</span>(aq) + H<span class="sub">2</span>(g)↑
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <span class="label-xs">재생 속도</span>
+          <div class="selection-card-group" id="speed-group">
+            <button class="selection-card active" data-speed="1">1×</button>
+            <button class="selection-card" data-speed="2">2×</button>
+            <button class="selection-card" data-speed="4">4×</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="btn-row">
+            <button class="btn-press" id="lab1-start">실험 시작</button>
+            <button class="btn-press btn-secondary" id="lab1-reset">초기화</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="lcd-row">
+            <div class="lcd stopwatch" id="lab1-sw">
+              <span class="label-xs">시간</span>
+              <div class="display" id="sw-display">00:00.0</div>
+            </div>
+            <div class="lcd pressure">
+              <span class="label-xs">압력</span>
+              <div class="display" id="pr-display">1.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <span class="label-xs">실험 조건</span>
+          <div style="font-size:0.85rem; color:var(--text-sub); line-height:1.7; background:#f8fafc; padding:10px 12px; border-radius:8px;">
+            · 마그네슘: 0.12 g<br>
+            · 묽은 염산: 1.0 M, 50 mL<br>
+            · 플라스크 기상 부피: 100 mL
+          </div>
+        </div>
+
+      </aside>
+
+      <div class="canvas-container">
+        <svg id="lab1-svg" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg">
+          <!-- Defs -->
+          <defs>
+            <linearGradient id="glassGrad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#f1f5f9" stop-opacity="0.25"/>
+              <stop offset="50%" stop-color="#cbd5e1" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="#94a3b8" stop-opacity="0.22"/>
+            </linearGradient>
+            <linearGradient id="acidGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#e0f2fe"/>
+              <stop offset="100%" stop-color="#bae6fd"/>
+            </linearGradient>
+            <linearGradient id="sensorGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#334155"/>
+              <stop offset="100%" stop-color="#1e293b"/>
+            </linearGradient>
+            <clipPath id="flaskClip">
+              <path d="M 210,180 L 210,230 L 160,360 Q 160,380 180,380 L 320,380 Q 340,380 340,360 L 290,230 L 290,180 Z"/>
+            </clipPath>
+          </defs>
+
+          <!-- Table line -->
+          <g id="g-bench">
+            <line x1="20" y1="390" x2="540" y2="390" stroke="#64748b" stroke-width="1.5"/>
+            <line x1="60" y1="390" x2="40" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+            <line x1="140" y1="390" x2="120" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+            <line x1="240" y1="390" x2="220" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+            <line x1="340" y1="390" x2="320" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+            <line x1="440" y1="390" x2="420" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+            <line x1="520" y1="390" x2="500" y2="410" stroke="#cbd5e1" stroke-width="1"/>
+          </g>
+
+          <!-- Syringe (horizontal, 교과서 스타일) -->
+          <g id="g-syringe">
+            <!-- === Plunger (animated group, pushes rightward) === -->
+            <g id="plunger" transform="translate(0,0)">
+              <!-- T-grip (바깥쪽 손잡이) -->
+              <rect x="12" y="86" width="10" height="48" rx="1.5" fill="#475569"/>
+              <rect x="6" y="102" width="22" height="16" rx="2" fill="#475569"/>
+              <!-- 플런저 로드 -->
+              <rect x="22" y="105" width="76" height="10" rx="1" fill="#94a3b8" stroke="#64748b" stroke-width="0.8"/>
+              <!-- 플런저 고무 seal (배럴 내부) -->
+              <rect x="96" y="92" width="10" height="36" rx="1" fill="#64748b" stroke="#334155" stroke-width="0.8"/>
+            </g>
+
+            <!-- === Syringe barrel (유리, 수평) === -->
+            <!-- 핑거 플랜지 (왼쪽 끝) -->
+            <rect x="102" y="78" width="5" height="64" rx="1" fill="#64748b"/>
+            <!-- barrel -->
+            <rect x="106" y="90" width="112" height="40" rx="3" fill="url(#glassGrad)" stroke="#64748b" stroke-width="1.5"/>
+            <!-- 눈금 -->
+            <g stroke="#94a3b8" stroke-width="0.7">
+              <line x1="122" y1="90" x2="122" y2="96"/>
+              <line x1="138" y1="90" x2="138" y2="94"/>
+              <line x1="154" y1="90" x2="154" y2="96"/>
+              <line x1="170" y1="90" x2="170" y2="94"/>
+              <line x1="186" y1="90" x2="186" y2="96"/>
+              <line x1="202" y1="90" x2="202" y2="94"/>
+            </g>
+            <!-- barrel 내부 액체 (주입 시 왼쪽부터 감소) -->
+            <rect id="syringeLiquid" x="106" y="92" width="112" height="36" fill="url(#acidGrad)"/>
+            <!-- 팁(노즐) — 원뿔형으로 좁아짐 -->
+            <path d="M 218,102 L 232,106 L 232,114 L 218,118 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="1.2"/>
+
+            <!-- === Luer-lock 연결부 (나사선 칼라) === -->
+            <g id="g-luer">
+              <!-- 외부 칼라 (나사형) -->
+              <rect x="232" y="98" width="20" height="24" rx="1.5" fill="#e2e8f0" stroke="#64748b" stroke-width="1.2"/>
+              <!-- 나사 라인 -->
+              <line x1="234" y1="103" x2="250" y2="103" stroke="#94a3b8" stroke-width="0.6"/>
+              <line x1="234" y1="108" x2="250" y2="108" stroke="#94a3b8" stroke-width="0.6"/>
+              <line x1="234" y1="113" x2="250" y2="113" stroke="#94a3b8" stroke-width="0.6"/>
+              <line x1="234" y1="118" x2="250" y2="118" stroke="#94a3b8" stroke-width="0.6"/>
+              <!-- 내부 테이퍼 (Luer 슬립) -->
+              <rect x="236" y="106" width="12" height="8" fill="#94a3b8"/>
+            </g>
+
+            <!-- === 3-way 스톱콕 (밸브) === -->
+            <g id="g-stopcock">
+              <!-- 허브 몸체 -->
+              <rect x="252" y="96" width="24" height="28" rx="3" fill="#64748b" stroke="#1e293b" stroke-width="1.2"/>
+              <!-- 포트 음영 (들어가는 부분) -->
+              <rect x="250" y="106" width="4" height="8" fill="#475569"/>
+              <!-- 회전축 (중앙 피벗) -->
+              <circle cx="264" cy="110" r="4" fill="#1e293b"/>
+              <circle cx="264" cy="110" r="1.5" fill="#94a3b8"/>
+              <!-- 레버 핸들 (위쪽으로 — 현재 아래방향 OPEN 상태) -->
+              <rect x="261" y="78" width="6" height="20" rx="1" fill="#ef4444" stroke="#b91c1c" stroke-width="0.6"/>
+              <rect x="254" y="76" width="20" height="6" rx="1.5" fill="#ef4444" stroke="#b91c1c" stroke-width="0.6"/>
+              <!-- 배출 포트 (아래로) -->
+              <rect x="260" y="124" width="8" height="6" fill="#475569"/>
+            </g>
+
+            <!-- === 스톱콕 → 마개 연결 튜브 === -->
+            <rect x="260" y="130" width="8" height="42" fill="#cbd5e1" stroke="#64748b" stroke-width="1.2"/>
+            <!-- 튜브 안쪽 반투명 -->
+            <rect x="262" y="130" width="4" height="42" fill="#e2e8f0" opacity="0.5"/>
+
+            <!-- 염산 라벨 (배럴 위쪽) -->
+            <text x="162" y="74" font-size="11" font-weight="700" fill="#334155" text-anchor="middle">염산</text>
+            <text x="162" y="154" font-size="10" fill="#64748b" text-anchor="middle">(1.0 M HCl)</text>
+          </g>
+
+          <!-- Flask -->
+          <g id="g-flask">
+            <!-- 고무 마개 (사다리꼴 형태) -->
+            <path d="M 208,172 L 292,172 L 285,188 L 215,188 Z" fill="#334155" stroke="#1e293b" stroke-width="1"/>
+            <!-- 마개 상단 하이라이트 -->
+            <rect x="208" y="170" width="84" height="3" rx="1.5" fill="#64748b" opacity="0.7"/>
+            <!-- 플라스크 입구 테두리 -->
+            <rect x="214" y="186" width="72" height="4" fill="#94a3b8"/>
+            <!-- neck sides + body outline -->
+            <path d="M 210,184 L 210,230 L 160,360 Q 160,380 180,380 L 320,380 Q 340,380 340,360 L 290,230 L 290,184 Z"
+                  fill="url(#glassGrad)" stroke="#64748b" stroke-width="2"/>
+
+            <!-- acid liquid (filled inside flask, clipped) -->
+            <g clip-path="url(#flaskClip)">
+              <rect id="acidFill" x="150" y="300" width="200" height="85" fill="url(#acidGrad)"/>
+              <!-- Mg ribbons (clipped inside liquid) -->
+              <g id="g-mg">
+                <rect class="mg-ribbon" x="220" y="325" width="8" height="42" fill="#9ca3af" rx="1" data-i="0"/>
+                <rect class="mg-ribbon" x="244" y="320" width="8" height="50" fill="#9ca3af" rx="1" data-i="1"/>
+                <rect class="mg-ribbon" x="268" y="328" width="8" height="38" fill="#9ca3af" rx="1" data-i="2"/>
+              </g>
+              <!-- bubbles container (dynamic) -->
+              <g id="g-bubbles"></g>
+            </g>
+          </g>
+
+          <!-- Stopper tube from flask to sensor port -->
+          <g id="g-stopper-tube">
+            <path d="M 289,187 Q 335,187 352,210 Q 375,240 398,248" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 289,187 Q 335,187 352,210 Q 375,240 398,248" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/>
+          </g>
+
+          <!-- ================= PASCO Wireless Pressure Sensor ================= -->
+          <g id="g-sensor">
+            <!-- 튜브 연결 포트 (왼쪽) -->
+            <rect x="398" y="241" width="10" height="14" rx="2" fill="#cbd5e1" stroke="#475569" stroke-width="1"/>
+            <rect x="400" y="243" width="6" height="10" rx="0.8" fill="#64748b"/>
+
+            <!-- 본체 그림자 -->
+            <rect x="410" y="220" width="130" height="70" rx="9" fill="#0f172a" opacity="0.08"/>
+            <!-- 흰색 하우징 -->
+            <rect x="408" y="218" width="130" height="70" rx="9" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+            <!-- 상단 글로시 하이라이트 -->
+            <rect x="410" y="220" width="126" height="2.5" rx="1" fill="#f1f5f9"/>
+
+            <!-- === Top row: Power + Battery === -->
+            <!-- Power button (원 + 위쪽 직선) -->
+            <g stroke="#64748b" stroke-width="1" fill="none" stroke-linecap="round">
+              <circle cx="420" cy="229" r="3.5"/>
+              <line x1="420" y1="225.5" x2="420" y2="228.5"/>
+            </g>
+            <!-- 배터리 표시 -->
+            <g transform="translate(515,226)">
+              <rect x="0" y="0" width="14" height="6" rx="1" fill="none" stroke="#64748b" stroke-width="0.8"/>
+              <rect x="14" y="2" width="1.5" height="2" fill="#64748b"/>
+              <rect x="2" y="1.5" width="4" height="3" fill="#f59e0b"/>
+            </g>
+
+            <!-- === 센서 타이틀 === -->
+            <text x="473" y="254" text-anchor="middle" font-size="11" font-weight="700" fill="#475569" letter-spacing="0.8">PRESSURE SENSOR</text>
+            <text x="473" y="266" text-anchor="middle" font-size="7.5" font-weight="500" fill="#94a3b8" letter-spacing="0.3">wireless · 0~400 kPa</text>
+
+            <!-- === Bottom row: USB + Bluetooth + Model === -->
+            <!-- USB 아이콘 -->
+            <g transform="translate(418,275)" stroke="#64748b" stroke-width="0.85" fill="none" stroke-linecap="round">
+              <circle cx="0" cy="-1" r="1.1" fill="#64748b" stroke="none"/>
+              <line x1="0" y1="-1" x2="0" y2="6"/>
+              <line x1="0" y1="2" x2="-2.2" y2="4"/>
+              <line x1="-2.2" y1="4" x2="-2.2" y2="6"/>
+              <circle cx="-2.2" cy="4" r="0.7" fill="#64748b" stroke="none"/>
+              <line x1="0" y1="1" x2="2.2" y2="1"/>
+              <rect x="1.4" y="0.3" width="1.6" height="1.4" fill="#64748b" stroke="none"/>
+            </g>
+            <!-- Bluetooth 아이콘 (다이아몬드 크로스) -->
+            <path transform="translate(430,278)" d="M 0,-4 L 2.5,-1.5 L -2.5,2 L 0,4 L 2.5,1.5 L -2.5,-2 L 0,-4" stroke="#64748b" stroke-width="0.9" fill="none" stroke-linejoin="round"/>
+            <!-- 모델 번호 -->
+            <text x="440" y="281" font-size="7" fill="#64748b" font-weight="500">624-178</text>
+
+            <!-- ================= LIVE DATA 수신 디스플레이 (분리된 모듈) ================= -->
+            <rect x="408" y="300" width="130" height="42" rx="8" fill="#0b1220" stroke="#334155" stroke-width="1.2"/>
+            <circle cx="420" cy="312" r="2.2" fill="#4ade80">
+              <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
+            </circle>
+            <text x="426" y="315" font-size="7.5" font-weight="700" fill="#94a3b8" letter-spacing="0.8">LIVE DATA</text>
+            <text id="sensorText" x="473" y="335" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="18" font-weight="700" fill="#fbbf24" style="font-variant-numeric: tabular-nums;">1.00 atm</text>
+          </g>
+
+        </svg>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================= LAB 1 — 분석 화면 -->
+  <section id="screen-lab1-analysis" class="screen">
+    <div class="analysis-topbar">
+      <button class="btn-back" data-go="lab1">← 실험으로</button>
+      <button class="btn-back" data-go="home">← HOME</button>
+    </div>
+    <header class="lab-header">
+      <h1>반응 속도 분석</h1>
+      <p>그래프 위에서 핸들을 드래그하거나 곡선을 클릭하여 반응 속도를 측정해 보세요.</p>
+    </header>
+
+    <section id="lab1-analysis" class="analysis-panel">
+      <div class="tab-bar" id="mode-tabs">
+        <button class="tab-btn active" data-mode="avg">평균 반응 속도</button>
+        <button class="tab-btn" data-mode="inst">순간 반응 속도</button>
+        <button class="tab-btn" data-mode="initial">초기 반응 속도</button>
+      </div>
+
+      <div class="analysis-grid">
+        <div>
+          <svg id="lab1-graph" viewBox="0 0 660 380" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <div class="analysis-side">
+
+          <div class="mode-hint" id="mode-hint">
+            x축 위의 두 핸들을 드래그하여 평균 속도를 구할 구간을 선택하세요.
+          </div>
+
+          <div id="range-controls-wrap" class="range-controls">
+            <div class="rc">
+              <label>시작 시간 t₁</label>
+              <div class="vbox"><span id="t1-val">10</span> 초</div>
+            </div>
+            <div class="rc">
+              <label>끝 시간 t₂</label>
+              <div class="vbox"><span id="t2-val">40</span> 초</div>
+            </div>
+          </div>
+
+          <div class="result-card primary">
+            <span class="label-xs">측정된 반응 속도</span>
+            <div><span class="big" id="rate-atm">0.00000</span><span class="unit">atm/s</span></div>
+            <div style="margin-top:6px;"><span class="big" id="rate-mol">0.00000</span><span class="unit">mol/(L·s)</span></div>
+          </div>
+
+          <div class="result-card">
+            <span class="label-xs">구간 정보</span>
+            <div id="range-info" style="font-size:0.9rem; line-height:1.7; color:var(--text-main);">
+              t = 10s → 40s<br>
+              ΔP = 0.270 atm<br>
+              Δt = 30 s
+            </div>
+          </div>
+
+          <button class="formula-toggle" id="formula-toggle">단위 환산식 보기 ▸</button>
+          <div class="formula-box" id="formula-box" hidden>
+            이상기체 상태 방정식 <code>PV = nRT</code>로 환산:<br>
+            <code>Δ[H₂]/Δt = (ΔP/Δt) × V<sub>gas</sub> / (R·T·V<sub>sol</sub>)</code><br><br>
+            V<sub>gas</sub>=0.100 L, V<sub>sol</sub>=0.050 L<br>
+            R=0.0821 atm·L/(mol·K), T=298 K<br>
+            환산 계수 ≈ <b>0.0818</b> mol/(L·atm)
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================================================= LAB 2 -->
+  <section id="screen-lab2" class="screen">
+    <button class="btn-back" data-go="home">← HOME</button>
+    <div class="coming-soon-card">
+      <h2>Lab 2. 반응물의 농도와 반응 속도</h2>
+      <p>곧 공개됩니다. 조금만 기다려 주세요.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ============================================================ DATA
+// 2022 개정 교육과정 — 압력 센서 측정값
+// · 10s에서 1.28 atm, 20s에서 1.48 atm
+// · 증가량이 점점 감소 (0.28 → 0.20 → 0.07)
+// · 30s 이후 일정 (HCl이 한계 반응물이므로 반응 종료)
+const TIMES     = [0, 10, 20, 30, 40, 50];
+const PRESSURES = [1.00, 1.28, 1.48, 1.55, 1.55, 1.55];
+const T_MAX = 50;
+const P0 = 1.00, DP_MAX = 0.55;
+
+// 이상기체 환산 상수
+const V_GAS = 0.100, V_SOL = 0.050, R = 0.0821, T = 298;
+const ATM_TO_MOLPL = V_GAS / (R * T * V_SOL); // ≈ 0.08175
+
+// ============================================================ STATE
+const state = {
+  screen: 'home',
+  lab1: {
+    phase: 'setup',    // 'setup' | 'running' | 'done'
+    speed: 1,
+    tSim: 0,
+    rafId: null,
+    lastTs: 0,
+    lastBubbleSpawn: 0,
+    analysis: {
+      mode: 'avg',
+      t1: 10,
+      t2: 40,
+      instT: 20
+    }
+  }
+};
+
+// ============================================================ NAVIGATION
+document.querySelectorAll('[data-go]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.go;
+    if (btn.disabled) return;
+    navigate(target);
+  });
+});
+
+function navigate(target) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + target);
+  if (el) el.classList.add('active');
+  state.screen = target;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  // 실험 화면 / 분석 화면 사이 이동 시에는 상태 보존, 나머지는 초기화
+  if (target !== 'lab1' && target !== 'lab1-analysis') resetExperiment();
+}
+
+// ============================================================ CORE FNs
+function pressureAt(t) {
+  if (t <= 0) return PRESSURES[0];
+  if (t >= T_MAX) return PRESSURES[PRESSURES.length - 1];
+  const i = Math.floor(t / 10);
+  const f = (t - TIMES[i]) / 10;
+  return PRESSURES[i] + f * (PRESSURES[i + 1] - PRESSURES[i]);
+}
+
+function rateAvg(t1, t2) {
+  if (t2 <= t1) return 0;
+  return (pressureAt(t2) - pressureAt(t1)) / (t2 - t1);
+}
+
+function rateInstant(t) {
+  const h = 0.5;
+  const a = Math.max(0, t - h);
+  const b = Math.min(T_MAX, t + h);
+  if (b <= a) return 0;
+  return (pressureAt(b) - pressureAt(a)) / (b - a);
+}
+
+function rateInitial() {
+  return rateAvg(0, 10);
+}
+
+function toMolPerLs(r) {
+  return r * ATM_TO_MOLPL;
+}
+
+// ============================================================ EXPERIMENT LOOP
+const startBtn = document.getElementById('lab1-start');
+const resetBtn = document.getElementById('lab1-reset');
+const swDisplay = document.getElementById('sw-display');
+const prDisplay = document.getElementById('pr-display');
+const sensorText = document.getElementById('sensorText');
+const plunger = document.getElementById('plunger');
+const syringeLiquid = document.getElementById('syringeLiquid');
+const bubbleGroup = document.getElementById('g-bubbles');
+const mgRibbons = document.querySelectorAll('.mg-ribbon');
+const analysisPanel = document.getElementById('lab1-analysis');
+const swBox = document.getElementById('lab1-sw');
+
+startBtn.addEventListener('click', () => {
+  const phase = state.lab1.phase;
+  if (phase === 'setup') {
+    startExperiment();
+  } else if (phase === 'running') {
+    pauseExperiment();
+  } else if (phase === 'paused') {
+    resumeExperiment();
+  } else if (phase === 'done') {
+    // 분석 화면으로 이동
+    navigate('lab1-analysis');
+  }
+});
+resetBtn.addEventListener('click', () => {
+  const phase = state.lab1.phase;
+  if (phase === 'running' || phase === 'paused') {
+    // 중지: 실험을 즉시 종료하고 분석 단계로
+    stopExperiment();
+  } else if (phase === 'done') {
+    // 다시 실험: 초기화 후 바로 시작
+    resetExperiment();
+    startExperiment();
+  } else {
+    resetExperiment();
+  }
+});
+
+function updateButtons() {
+  const phase = state.lab1.phase;
+  startBtn.disabled = false;
+  resetBtn.disabled = false;
+  startBtn.classList.remove('btn-warn', 'btn-success');
+  if (phase === 'setup') {
+    startBtn.textContent = '실험 시작';
+    resetBtn.textContent = '초기화';
+  } else if (phase === 'running') {
+    startBtn.textContent = '일시정지';
+    startBtn.classList.add('btn-warn');
+    resetBtn.textContent = '중지';
+  } else if (phase === 'paused') {
+    startBtn.textContent = '계속';
+    resetBtn.textContent = '중지';
+  } else if (phase === 'done') {
+    startBtn.textContent = '결과 분석';
+    startBtn.classList.add('btn-success');
+    resetBtn.textContent = '다시 실험';
+  }
+}
+
+document.querySelectorAll('#speed-group .selection-card').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#speed-group .selection-card').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.lab1.speed = parseInt(b.dataset.speed, 10);
+  });
+});
+
+function fmtTime(sec) {
+  const s = Math.max(0, sec);
+  const m = Math.floor(s / 60);
+  const r = s - m * 60;
+  return String(m).padStart(2, '0') + ':' + r.toFixed(1).padStart(4, '0');
+}
+
+function startExperiment() {
+  state.lab1.phase = 'running';
+  state.lab1.tSim = 0;
+  state.lab1.lastTs = 0;
+  state.lab1.lastBubbleSpawn = 0;
+  swBox.classList.remove('stopped');
+  bubbleGroup.innerHTML = '';
+  mgRibbons.forEach(el => el.style.transform = '');
+
+  // Syringe plunger animation — 수평 주입 (플런저가 오른쪽으로 밀림)
+  plunger.style.transition = 'transform 1.8s cubic-bezier(0.4, 0, 0.2, 1)';
+  plunger.style.transform = 'translateX(102px)';
+  // 액체가 왼쪽부터 비워짐 (x 증가, width 감소)
+  syringeLiquid.style.transition = 'x 1.8s cubic-bezier(0.4, 0, 0.2, 1), width 1.8s cubic-bezier(0.4, 0, 0.2, 1)';
+  syringeLiquid.setAttribute('x', '210');
+  syringeLiquid.setAttribute('width', '8');
+
+  updateButtons();
+  state.lab1.rafId = requestAnimationFrame(tickLoop);
+}
+
+function tickLoop(ts) {
+  if (state.lab1.phase !== 'running') return;
+  if (!state.lab1.lastTs) state.lab1.lastTs = ts;
+  const dt = (ts - state.lab1.lastTs) / 1000 * state.lab1.speed;
+  state.lab1.lastTs = ts;
+  state.lab1.tSim = Math.min(T_MAX, state.lab1.tSim + dt);
+
+  const tSim = state.lab1.tSim;
+  const P = pressureAt(tSim);
+
+  // Update displays
+  swDisplay.textContent = fmtTime(tSim);
+  prDisplay.textContent = P.toFixed(2);
+  sensorText.textContent = P.toFixed(2) + ' atm';
+
+  // Mg 소비 (HCl이 한계 반응물이라 상당량이 남음)
+  const progress = (P - P0) / DP_MAX; // 0 → 1
+  mgRibbons.forEach((el, i) => {
+    const minScale = 0.60 + i * 0.05; // 0.60, 0.65, 0.70 — 약 60~70% 잔존
+    const scale = Math.max(minScale, 1 - progress * 0.4);
+    el.style.transform = `scaleY(${scale})`;
+  });
+
+  // Bubble spawning — 순간 속도에 비례
+  const instRate = rateInstant(tSim);
+  const maxSpawnHz = 25;
+  const spawnHz = (instRate / 0.028) * maxSpawnHz * state.lab1.speed;
+  const targetInterval = spawnHz > 0 ? 1000 / spawnHz : Infinity;
+  if (ts - state.lab1.lastBubbleSpawn > targetInterval && tSim > 1.2 && tSim < T_MAX - 1) {
+    spawnBubble();
+    state.lab1.lastBubbleSpawn = ts;
+  }
+
+  if (state.lab1.tSim >= T_MAX) {
+    finishExperiment();
+    return;
+  }
+  state.lab1.rafId = requestAnimationFrame(tickLoop);
+}
+
+function pauseExperiment() {
+  if (state.lab1.phase !== 'running') return;
+  state.lab1.phase = 'paused';
+  if (state.lab1.rafId) cancelAnimationFrame(state.lab1.rafId);
+  state.lab1.rafId = null;
+  // 버블 애니메이션 일시정지
+  bubbleGroup.querySelectorAll('circle').forEach(b => {
+    b.style.animationPlayState = 'paused';
+  });
+  swBox.classList.add('stopped');
+  updateButtons();
+}
+
+function resumeExperiment() {
+  if (state.lab1.phase !== 'paused') return;
+  state.lab1.phase = 'running';
+  state.lab1.lastTs = 0;  // 다음 tick에서 dt가 튀지 않도록
+  // 버블 애니메이션 재개
+  bubbleGroup.querySelectorAll('circle').forEach(b => {
+    b.style.animationPlayState = 'running';
+  });
+  swBox.classList.remove('stopped');
+  updateButtons();
+  state.lab1.rafId = requestAnimationFrame(tickLoop);
+}
+
+function stopExperiment() {
+  // 중지: 실험 종료 상태로 즉시 전환 (분석 패널 표시)
+  if (state.lab1.rafId) cancelAnimationFrame(state.lab1.rafId);
+  state.lab1.rafId = null;
+  state.lab1.tSim = T_MAX;
+  finishExperiment();
+}
+
+function spawnBubble() {
+  const cx = 215 + Math.random() * 70;
+  const cy = 355 - Math.random() * 15;
+  const r = 2 + Math.random() * 2.5;
+  const b = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  b.setAttribute('cx', cx);
+  b.setAttribute('cy', cy);
+  b.setAttribute('r', r);
+  b.setAttribute('fill', '#e0f2fe');
+  b.setAttribute('stroke', '#7dd3fc');
+  b.setAttribute('stroke-width', '0.5');
+  b.setAttribute('opacity', '0.9');
+  b.style.animation = `bubble-rise ${1.3 + Math.random() * 0.8}s ease-out forwards`;
+  bubbleGroup.appendChild(b);
+  setTimeout(() => b.remove(), 2400);
+}
+
+function finishExperiment() {
+  state.lab1.phase = 'done';
+  if (state.lab1.rafId) cancelAnimationFrame(state.lab1.rafId);
+  state.lab1.rafId = null;
+  const finalP = PRESSURES[PRESSURES.length - 1];
+  swDisplay.textContent = fmtTime(T_MAX);
+  prDisplay.textContent = finalP.toFixed(2);
+  sensorText.textContent = finalP.toFixed(2) + ' atm';
+  // 시약·플런저를 최종 상태로 스냅
+  plunger.style.transition = 'transform 0.4s ease';
+  plunger.style.transform = 'translateX(102px)';
+  syringeLiquid.style.transition = 'x 0.4s ease, width 0.4s ease';
+  syringeLiquid.setAttribute('x', '210');
+  syringeLiquid.setAttribute('width', '8');
+  mgRibbons.forEach((el, i) => {
+    const minScale = 0.60 + i * 0.05;
+    el.style.transition = 'transform 0.4s ease';
+    el.style.transform = `scaleY(${minScale})`;
+  });
+  // 버블 애니메이션 복원 (일시정지 상태였을 수도 있음)
+  bubbleGroup.querySelectorAll('circle').forEach(b => {
+    b.style.animationPlayState = 'running';
+  });
+  swBox.classList.add('stopped');
+  renderGraph(); // 분석 화면에서 볼 그래프를 미리 렌더
+  updateButtons();
+}
+
+function resetExperiment() {
+  if (state.lab1.rafId) cancelAnimationFrame(state.lab1.rafId);
+  state.lab1.phase = 'setup';
+  state.lab1.tSim = 0;
+  state.lab1.lastTs = 0;
+  state.lab1.rafId = null;
+  swDisplay.textContent = '00:00.0';
+  prDisplay.textContent = '1.00';
+  sensorText.textContent = '1.00 atm';
+  swBox.classList.remove('stopped');
+  bubbleGroup.innerHTML = '';
+  plunger.style.transition = 'transform 0.3s ease';
+  plunger.style.transform = 'translateX(0)';
+  syringeLiquid.style.transition = 'x 0.3s ease, width 0.3s ease';
+  syringeLiquid.setAttribute('x', '106');
+  syringeLiquid.setAttribute('width', '112');
+  mgRibbons.forEach(el => { el.style.transition = 'transform 0.3s ease'; el.style.transform = ''; });
+  updateButtons();
+}
+
+// ============================================================ GRAPH
+const GRAPH = {
+  w: 660, h: 380,
+  x0: 64, x1: 630,
+  y0: 320, y1: 40,
+  tMin: 0, tMax: 50,
+  pMin: 1.0, pMax: 1.6
+};
+const graphSvg = document.getElementById('lab1-graph');
+
+function tToX(t) {
+  return GRAPH.x0 + (t - GRAPH.tMin) / (GRAPH.tMax - GRAPH.tMin) * (GRAPH.x1 - GRAPH.x0);
+}
+function pToY(p) {
+  return GRAPH.y0 - (p - GRAPH.pMin) / (GRAPH.pMax - GRAPH.pMin) * (GRAPH.y0 - GRAPH.y1);
+}
+function xToT(x) {
+  const t = GRAPH.tMin + (x - GRAPH.x0) / (GRAPH.x1 - GRAPH.x0) * (GRAPH.tMax - GRAPH.tMin);
+  return Math.max(GRAPH.tMin, Math.min(GRAPH.tMax, t));
+}
+
+function svgPoint(svg, evt) {
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX;
+  pt.y = evt.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+function el(tag, attrs = {}) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) {
+    if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'class') e.setAttribute('class', attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  return e;
+}
+
+function renderGraph() {
+  graphSvg.innerHTML = '';
+
+  // Grid lines
+  for (let t = 10; t <= T_MAX; t += 10) {
+    graphSvg.appendChild(el('line', {
+      x1: tToX(t), y1: GRAPH.y1, x2: tToX(t), y2: GRAPH.y0, class: 'graph-grid'
+    }));
+  }
+  for (let p = 1.0; p <= 1.6 + 0.001; p += 0.1) {
+    graphSvg.appendChild(el('line', {
+      x1: GRAPH.x0, y1: pToY(p), x2: GRAPH.x1, y2: pToY(p), class: 'graph-grid'
+    }));
+  }
+
+  // Axes
+  graphSvg.appendChild(el('line', {
+    x1: GRAPH.x0, y1: GRAPH.y0, x2: GRAPH.x1, y2: GRAPH.y0, class: 'graph-axis'
+  }));
+  graphSvg.appendChild(el('line', {
+    x1: GRAPH.x0, y1: GRAPH.y0, x2: GRAPH.x0, y2: GRAPH.y1, class: 'graph-axis'
+  }));
+
+  // Axis ticks + labels (x)
+  for (let t = 0; t <= T_MAX; t += 10) {
+    graphSvg.appendChild(el('line', {
+      x1: tToX(t), y1: GRAPH.y0, x2: tToX(t), y2: GRAPH.y0 + 5, class: 'graph-axis'
+    }));
+    graphSvg.appendChild(el('text', {
+      x: tToX(t), y: GRAPH.y0 + 18, 'text-anchor': 'middle', class: 'graph-tick-text', text: String(t)
+    }));
+  }
+  // y ticks
+  for (let p = 1.0; p <= 1.6 + 0.001; p += 0.1) {
+    graphSvg.appendChild(el('line', {
+      x1: GRAPH.x0 - 5, y1: pToY(p), x2: GRAPH.x0, y2: pToY(p), class: 'graph-axis'
+    }));
+    graphSvg.appendChild(el('text', {
+      x: GRAPH.x0 - 9, y: pToY(p) + 4, 'text-anchor': 'end', class: 'graph-tick-text', text: p.toFixed(1)
+    }));
+  }
+
+  // Axis labels
+  graphSvg.appendChild(el('text', {
+    x: (GRAPH.x0 + GRAPH.x1) / 2, y: GRAPH.y0 + 42, 'text-anchor': 'middle', class: 'graph-axis-label', text: '시간 (s)'
+  }));
+  const ylabel = el('text', {
+    x: 16, y: (GRAPH.y0 + GRAPH.y1) / 2, 'text-anchor': 'middle', class: 'graph-axis-label', text: '압력 (atm)',
+    transform: `rotate(-90, 16, ${(GRAPH.y0 + GRAPH.y1) / 2})`
+  });
+  graphSvg.appendChild(ylabel);
+
+  // Curve (piecewise linear through data points)
+  let path = '';
+  for (let i = 0; i < TIMES.length; i++) {
+    path += (i === 0 ? 'M' : 'L') + ' ' + tToX(TIMES[i]) + ',' + pToY(PRESSURES[i]) + ' ';
+  }
+  graphSvg.appendChild(el('path', { d: path, class: 'graph-curve' }));
+
+  // Data points (30초 이후 plateau 구간은 dim 처리)
+  for (let i = 0; i < TIMES.length; i++) {
+    const dim = (i > 3); // t=40, 50 — 1.55 atm 동일 구간 (plateau)
+    graphSvg.appendChild(el('circle', {
+      cx: tToX(TIMES[i]), cy: pToY(PRESSURES[i]),
+      r: 4.5, class: 'graph-point' + (dim ? ' dim' : '')
+    }));
+  }
+
+  // Invisible hit rect for clicks (only when inst mode active)
+  const hit = el('rect', {
+    x: GRAPH.x0, y: GRAPH.y1, width: GRAPH.x1 - GRAPH.x0, height: GRAPH.y0 - GRAPH.y1,
+    class: 'graph-hit', id: 'graph-hit'
+  });
+  graphSvg.appendChild(hit);
+  hit.addEventListener('click', (e) => {
+    if (state.lab1.analysis.mode !== 'inst') return;
+    const p = svgPoint(graphSvg, e);
+    const t = xToT(p.x);
+    state.lab1.analysis.instT = Math.round(t * 10) / 10;
+    drawOverlay();
+    updateResultPanel();
+  });
+
+  drawOverlay();
+  updateResultPanel();
+}
+
+function drawOverlay() {
+  // Remove prior overlay
+  graphSvg.querySelectorAll('.overlay').forEach(n => n.remove());
+  const mode = state.lab1.analysis.mode;
+  const g = el('g', { class: 'overlay' });
+  graphSvg.appendChild(g);
+
+  if (mode === 'avg') {
+    const { t1, t2 } = state.lab1.analysis;
+    const p1 = pressureAt(t1), p2 = pressureAt(t2);
+
+    // Region fill
+    g.appendChild(el('rect', {
+      x: tToX(t1), y: GRAPH.y1, width: tToX(t2) - tToX(t1), height: GRAPH.y0 - GRAPH.y1, class: 'region-fill'
+    }));
+
+    // Vertical guides
+    g.appendChild(el('line', { x1: tToX(t1), y1: pToY(p1), x2: tToX(t1), y2: GRAPH.y0, class: 'drag-guide' }));
+    g.appendChild(el('line', { x1: tToX(t2), y1: pToY(p2), x2: tToX(t2), y2: GRAPH.y0, class: 'drag-guide' }));
+
+    // Secant line
+    g.appendChild(el('line', {
+      x1: tToX(t1), y1: pToY(p1), x2: tToX(t2), y2: pToY(p2), class: 'secant-line'
+    }));
+    g.appendChild(el('circle', { cx: tToX(t1), cy: pToY(p1), r: 5, class: 'secant-point' }));
+    g.appendChild(el('circle', { cx: tToX(t2), cy: pToY(p2), r: 5, class: 'secant-point' }));
+
+    // Drag handles on x-axis
+    const h1 = el('circle', { cx: tToX(t1), cy: GRAPH.y0, r: 9, class: 'drag-handle', 'data-handle': 't1' });
+    const h2 = el('circle', { cx: tToX(t2), cy: GRAPH.y0, r: 9, class: 'drag-handle', 'data-handle': 't2' });
+    g.appendChild(h1); g.appendChild(h2);
+    g.appendChild(el('text', { x: tToX(t1), y: GRAPH.y0 - 14, class: 'handle-label', text: 't₁=' + t1.toFixed(0) }));
+    g.appendChild(el('text', { x: tToX(t2), y: GRAPH.y0 - 14, class: 'handle-label', text: 't₂=' + t2.toFixed(0) }));
+
+    attachDrag(h1, 't1');
+    attachDrag(h2, 't2');
+  }
+
+  if (mode === 'inst') {
+    const t = state.lab1.analysis.instT;
+    const p = pressureAt(t);
+    const slope = rateInstant(t);
+
+    // Tangent line — extend ±8s, clamped to graph
+    const span = 8;
+    const tA = Math.max(0, t - span);
+    const tB = Math.min(T_MAX, t + span);
+    const pA = p - slope * (t - tA);
+    const pB = p + slope * (tB - t);
+    g.appendChild(el('line', {
+      x1: tToX(tA), y1: pToY(Math.max(GRAPH.pMin, Math.min(GRAPH.pMax, pA))),
+      x2: tToX(tB), y2: pToY(Math.max(GRAPH.pMin, Math.min(GRAPH.pMax, pB))),
+      class: 'tangent-line'
+    }));
+    g.appendChild(el('circle', { cx: tToX(t), cy: pToY(p), r: 6, class: 'tangent-point' }));
+    g.appendChild(el('text', {
+      x: tToX(t), y: pToY(p) - 14, class: 'handle-label', fill: 'var(--tangent-color)',
+      style: 'fill:var(--tangent-color)', text: 't=' + t.toFixed(1) + 's'
+    }));
+  }
+
+  if (mode === 'initial') {
+    const slope = rateInitial();
+    const t = 0;
+    const p = P0;
+    // Tangent from t=0 using initial slope
+    const tB = 12;
+    const pB = p + slope * tB;
+    g.appendChild(el('line', {
+      x1: tToX(0), y1: pToY(p), x2: tToX(tB), y2: pToY(Math.min(GRAPH.pMax, pB)),
+      class: 'tangent-line'
+    }));
+    g.appendChild(el('circle', { cx: tToX(0), cy: pToY(p), r: 6, class: 'tangent-point' }));
+    g.appendChild(el('text', {
+      x: tToX(0) + 8, y: pToY(p) - 10, class: 'handle-label',
+      style: 'fill:var(--tangent-color); text-anchor:start', text: '초기 속도 (t=0)'
+    }));
+  }
+}
+
+// ============================================================ DRAG
+function attachDrag(handleEl, which) {
+  handleEl.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    handleEl.setPointerCapture(ev.pointerId);
+    const move = (e) => {
+      const pt = svgPoint(graphSvg, e);
+      let t = xToT(pt.x);
+      t = Math.round(t * 2) / 2; // 0.5s snap
+      const { t1, t2 } = state.lab1.analysis;
+      if (which === 't1') {
+        t = Math.max(0, Math.min(t, t2 - 5));
+        state.lab1.analysis.t1 = t;
+      } else {
+        t = Math.min(T_MAX, Math.max(t, t1 + 5));
+        state.lab1.analysis.t2 = t;
+      }
+      drawOverlay();
+      updateResultPanel();
+    };
+    const up = (e) => {
+      handleEl.releasePointerCapture(ev.pointerId);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+}
+
+// ============================================================ MODE TABS
+const modeTabs = document.getElementById('mode-tabs');
+modeTabs.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeTabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.lab1.analysis.mode = btn.dataset.mode;
+    drawOverlay();
+    updateResultPanel();
+  });
+});
+
+// ============================================================ RESULT PANEL
+const rateAtmEl = document.getElementById('rate-atm');
+const rateMolEl = document.getElementById('rate-mol');
+const rangeInfo = document.getElementById('range-info');
+const modeHint = document.getElementById('mode-hint');
+const rangeControlsWrap = document.getElementById('range-controls-wrap');
+const t1ValEl = document.getElementById('t1-val');
+const t2ValEl = document.getElementById('t2-val');
+
+function fmtRate(r) {
+  if (r === 0) return '0.00000';
+  const abs = Math.abs(r);
+  if (abs >= 0.001) return r.toFixed(5);
+  // scientific
+  const exp = Math.floor(Math.log10(abs));
+  const mant = r / Math.pow(10, exp);
+  return mant.toFixed(2) + '×10' + toSuper(exp);
+}
+function toSuper(n) {
+  const map = { '-': '⁻', '0': '⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+  return String(n).split('').map(c => map[c] || c).join('');
+}
+
+function updateResultPanel() {
+  const mode = state.lab1.analysis.mode;
+  let rate = 0, info = '', hint = '';
+  if (mode === 'avg') {
+    const { t1, t2 } = state.lab1.analysis;
+    rate = rateAvg(t1, t2);
+    const p1 = pressureAt(t1), p2 = pressureAt(t2);
+    info = `t = ${t1.toFixed(0)}s → ${t2.toFixed(0)}s<br>` +
+           `P(t₁) = ${p1.toFixed(3)} atm, P(t₂) = ${p2.toFixed(3)} atm<br>` +
+           `ΔP = ${(p2 - p1).toFixed(3)} atm, Δt = ${(t2 - t1).toFixed(1)} s`;
+    hint = 'x축의 두 파란 핸들을 드래그하여 평균 속도를 구할 구간을 선택하세요. 주황색 할선의 기울기가 평균 반응 속도입니다.';
+    t1ValEl.textContent = t1.toFixed(0);
+    t2ValEl.textContent = t2.toFixed(0);
+    rangeControlsWrap.style.display = 'grid';
+  } else if (mode === 'inst') {
+    const t = state.lab1.analysis.instT;
+    rate = rateInstant(t);
+    const p = pressureAt(t);
+    info = `t = ${t.toFixed(1)} s<br>` +
+           `P(t) = ${p.toFixed(3)} atm<br>` +
+           `접선의 기울기가 순간 반응 속도입니다`;
+    hint = '그래프 영역을 클릭하여 원하는 시각의 접선을 그려 보세요. 접선의 기울기가 그 시각의 순간 반응 속도입니다.';
+    rangeControlsWrap.style.display = 'none';
+  } else if (mode === 'initial') {
+    rate = rateInitial();
+    info = `t = 0 s (반응 시작)<br>` +
+           `첫 10초 구간의 기울기<br>` +
+           `초기 반응 속도가 가장 큽니다`;
+    hint = '초기 반응 속도는 반응 시작 직후(t=0)의 기울기이며, 반응물 농도가 가장 클 때이므로 전체 과정 중 가장 빠른 속도입니다.';
+    rangeControlsWrap.style.display = 'none';
+  }
+  rateAtmEl.textContent = fmtRate(rate);
+  rateMolEl.textContent = fmtRate(toMolPerLs(rate));
+  rangeInfo.innerHTML = info;
+  modeHint.textContent = hint;
+}
+
+// Formula toggle
+const formulaToggle = document.getElementById('formula-toggle');
+const formulaBox = document.getElementById('formula-box');
+formulaToggle.addEventListener('click', () => {
+  const hidden = formulaBox.hasAttribute('hidden');
+  if (hidden) {
+    formulaBox.removeAttribute('hidden');
+    formulaToggle.textContent = '단위 환산식 보기 ▾';
+  } else {
+    formulaBox.setAttribute('hidden', '');
+    formulaToggle.textContent = '단위 환산식 보기 ▸';
+  }
+});
+
+// Initial overlay render (in case analysis opened via dev)
+// (analysis panel is hidden by default; render happens in finishExperiment)
+
+// 초기 버튼 상태
+updateButtons();
+
+</script>
+</body>
+</html>
