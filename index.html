@@ -765,6 +765,366 @@
     text-align: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
+
+  /* ============================================================
+     LAB 2 — 반응차수 분석
+     ============================================================ */
+  #screen-lab2 .ui-panel { margin-bottom: 18px; }
+  #screen-lab2 .lab-header { margin-bottom: 20px; }
+
+  /* 실험 선택 카드 리스트 */
+  .exp-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .exp-select-card {
+    appearance: none;
+    background: white;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    transition: all 0.18s ease;
+  }
+  .exp-select-card:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    background: #f8fafc;
+  }
+  .exp-select-card.active {
+    border-color: var(--primary-color);
+    background: #eef2ff;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  }
+  .exp-select-card:disabled { opacity: 0.6; cursor: not-allowed; }
+  .exp-chip {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--primary-color);
+    background: #e0e7ff;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .exp-cond {
+    font-size: 0.82rem;
+    color: var(--text-main);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .exp-cond b { font-weight: 700; color: var(--text-strong); }
+  .exp-status {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: var(--text-sub);
+    letter-spacing: 0.01em;
+  }
+  .exp-status.running { background: #fef3c7; color: #92400e; }
+  .exp-status.done { background: #dcfce7; color: #166534; }
+
+  .reaction-big {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-strong);
+    letter-spacing: -0.01em;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .reaction-big sub { font-size: 0.78em; vertical-align: -0.25em; }
+  .rate-law-guess {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #eef2ff;
+    border-radius: 8px;
+    color: #3730a3;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .rate-law-guess .math { font-weight: 700; letter-spacing: 0.01em; }
+  .rate-law-guess em { font-style: italic; font-weight: 700; }
+
+  /* 데이터 테이블 */
+  .table-wrap { overflow-x: auto; }
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.95rem;
+    min-width: 460px;
+  }
+  .data-table thead th {
+    background: var(--text-strong);
+    color: #f1f5f9;
+    font-weight: 700;
+    padding: 12px 14px;
+    text-align: center;
+    font-size: 0.88rem;
+    letter-spacing: -0.01em;
+  }
+  .data-table thead th:first-child { border-top-left-radius: 10px; }
+  .data-table thead th:last-child { border-top-right-radius: 10px; }
+  .data-table tbody td {
+    padding: 13px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover { background: #f8fafc; }
+  .data-table .exp-num { font-weight: 800; color: var(--primary-color); }
+  .data-table .rate-cell { color: #1e40af; font-weight: 700; }
+  .data-table sub { font-size: 0.75em; }
+  .data-table sup { font-size: 0.75em; }
+
+  /* 비교 분석 2-column */
+  .lab2-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(16px, 1.8vw, 24px);
+    margin-bottom: 18px;
+  }
+  @media (max-width: 960px) { .lab2-compare-grid { grid-template-columns: 1fr; } }
+  .lab2-compare-grid .ui-panel { margin-bottom: 0; }
+
+  .compare-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .compare-head h3 { margin: 0; font-size: 1.02rem; }
+  .tag-blue {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .tag-green {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .ratio-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 14px 0;
+  }
+  .ratio-row {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .ratio-label {
+    font-weight: 700;
+    color: var(--text-strong);
+  }
+  .ratio-val {
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+  }
+  .ratio-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.01em;
+  }
+  .ratio-badge.neutral {
+    background: #e2e8f0;
+    color: #64748b;
+  }
+  .ratio-badge.change {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .ratio-conclusion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+  .ratio-conclusion .math { font-weight: 600; color: var(--text-main); }
+  .ratio-conclusion .arrow { color: var(--text-sub); font-size: 1.1rem; }
+  .ratio-conclusion strong { color: var(--primary-color); font-size: 1.15rem; }
+
+  .conclusion-text {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .conclusion-text.blue {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .conclusion-text.green {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .conclusion-text strong { font-size: 1.1em; }
+
+  /* 퀴즈 */
+  .quiz-panel h3 { margin-bottom: 6px; }
+  .quiz-q {
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--border-color);
+  }
+  .quiz-q:last-of-type { border-bottom: none; }
+  .quiz-q label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-strong);
+  }
+  .quiz-q label em { font-style: italic; font-weight: 700; color: var(--primary-color); }
+  .quiz-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .quiz-options button {
+    appearance: none;
+    min-width: 56px;
+    padding: 12px 18px;
+    border: 1.5px solid var(--border-color);
+    background: white;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .quiz-options button:hover:not(.correct):not(.wrong) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+  .quiz-options button.correct {
+    background: #10b981;
+    border-color: #059669;
+    color: white;
+  }
+  .quiz-options button.wrong {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+    animation: shake 0.35s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(3px); }
+  }
+  .quiz-feedback {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  /* 최종 결과 */
+  .result-panel {
+    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%, #f0fdf4 100%) !important;
+    border: 1px solid #c7d2fe !important;
+  }
+  .result-panel[hidden] { display: none; }
+  .rate-law-big {
+    text-align: center;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    color: var(--text-strong);
+    margin: 12px 0 22px;
+    letter-spacing: -0.01em;
+  }
+  .rate-law-big em { color: var(--primary-color); font-style: italic; }
+  .rate-law-big sup { font-size: 0.7em; }
+  .result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 560px) { .result-stats { grid-template-columns: 1fr; } }
+  .stat-card {
+    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .stat-card .big {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary-color);
+    line-height: 1.1;
+    margin: 4px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card .unit {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    font-weight: 500;
+  }
+  .stat-card .big .unit { font-size: 0.7em; font-weight: 700; color: var(--primary-color); margin-left: 4px; }
+  .stat-card .sub {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+  .formula-explain {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: #7c2d12;
+    line-height: 1.7;
+    margin: 0;
+  }
   .coming-soon-card .big-emoji { font-size: 2.4rem; margin-bottom: 14px; }
   .coming-soon-card h2 { margin: 0 0 10px; }
   .coming-soon-card p { margin: 0; color: var(--text-sub); }
@@ -1222,10 +1582,270 @@
   <!-- ============================================================= LAB 2 -->
   <section id="screen-lab2" class="screen">
     <button class="btn-back" data-go="home">← HOME</button>
-    <div class="coming-soon-card">
-      <h2>Lab 2. 반응물의 농도와 반응 속도</h2>
-      <p>곧 공개됩니다. 조금만 기다려 주세요.</p>
+    <header class="lab-header">
+      <h1>Lab 2. 반응물의 농도와 반응 속도</h1>
+      <p>농도를 바꾸며 세 실험을 직접 진행하고, 반응 속도가 어떻게 달라지는지 관찰해 반응차수를 찾아봅니다.</p>
+    </header>
+
+    <!-- ============ 시뮬레이터 ============ -->
+    <div class="module-grid">
+      <aside class="ui-panel">
+        <div class="panel-section">
+          <span class="label-xs">반응식</span>
+          <div class="reaction-eq">2 NO(g) + 2 H<sub>2</sub>(g) → N<sub>2</sub>(g) + 2 H<sub>2</sub>O(g)</div>
+        </div>
+
+        <div class="panel-section">
+          <span class="label-xs">실험 선택</span>
+          <div class="exp-select-list">
+            <button class="exp-select-card active" data-exp="1">
+              <span class="exp-chip">실험 1</span>
+              <span class="exp-cond"><b>[NO]</b> 0.1 M · <b>[H<sub>2</sub>]</b> 0.1 M</span>
+              <span class="exp-status" data-status="1">대기</span>
+            </button>
+            <button class="exp-select-card" data-exp="2">
+              <span class="exp-chip">실험 2</span>
+              <span class="exp-cond"><b>[NO]</b> 0.1 M · <b>[H<sub>2</sub>]</b> 0.2 M</span>
+              <span class="exp-status" data-status="2">대기</span>
+            </button>
+            <button class="exp-select-card" data-exp="3">
+              <span class="exp-chip">실험 3</span>
+              <span class="exp-cond"><b>[NO]</b> 0.2 M · <b>[H<sub>2</sub>]</b> 0.2 M</span>
+              <span class="exp-status" data-status="3">대기</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <span class="label-xs">재생 속도</span>
+          <div class="selection-card-group" id="lab2-speed-group">
+            <button class="selection-card active" data-speed="1">1×</button>
+            <button class="selection-card" data-speed="2">2×</button>
+            <button class="selection-card" data-speed="4">4×</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="btn-row">
+            <button class="btn-press" id="lab2-start">실험 시작</button>
+            <button class="btn-press btn-secondary" id="lab2-reset">모두 초기화</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="lcd-row">
+            <div class="lcd stopwatch" id="lab2-sw">
+              <span class="label-xs">시간</span>
+              <div class="display" id="lab2-sw-display">00:00.0</div>
+            </div>
+            <div class="lcd pressure">
+              <span class="label-xs">생성물</span>
+              <div class="display" id="lab2-prod-display">0</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="canvas-container">
+        <svg id="lab2-svg" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vesselGrad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#f1f5f9" stop-opacity="0.4"/>
+              <stop offset="50%" stop-color="#e2e8f0" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0.35"/>
+            </linearGradient>
+            <clipPath id="vesselClip">
+              <rect x="50" y="80" width="460" height="280" rx="18"/>
+            </clipPath>
+          </defs>
+
+          <!-- 용기 상단 라벨 -->
+          <text x="280" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="#475569" letter-spacing="0.05em">반응 용기 (기체 · 밀폐)</text>
+
+          <!-- 용기 상단 캡 -->
+          <rect x="40" y="66" width="480" height="16" rx="4" fill="#475569"/>
+          <circle cx="450" cy="74" r="3" fill="#ef4444"/>
+          <!-- 용기 하단 캡 -->
+          <rect x="40" y="358" width="480" height="16" rx="4" fill="#475569"/>
+
+          <!-- 용기 본체 -->
+          <rect x="50" y="80" width="460" height="280" rx="18" fill="url(#vesselGrad)" stroke="#64748b" stroke-width="2"/>
+
+          <!-- 분자들 (clipped within vessel) -->
+          <g clip-path="url(#vesselClip)">
+            <g id="lab2-particles"></g>
+          </g>
+
+          <!-- 현재 조건 표시 (좌상단) -->
+          <g transform="translate(66,98)">
+            <rect x="0" y="0" width="130" height="48" rx="6" fill="rgba(255,255,255,0.92)" stroke="#e2e8f0"/>
+            <text x="10" y="16" font-size="9" font-weight="700" fill="#64748b" letter-spacing="0.5">현재 조건</text>
+            <text id="lab2-cond-no" x="10" y="30" font-size="11" font-weight="700" fill="#dc2626">[NO] = 0.1 M</text>
+            <text id="lab2-cond-h2" x="10" y="42" font-size="11" font-weight="700" fill="#2563eb">[H₂] = 0.1 M</text>
+          </g>
+
+          <!-- 실시간 속도 (우상단) -->
+          <g transform="translate(370,98)">
+            <rect x="0" y="0" width="124" height="48" rx="6" fill="#0b1220" stroke="#334155"/>
+            <text x="10" y="15" font-size="8" font-weight="700" fill="#94a3b8" letter-spacing="0.6">INITIAL RATE</text>
+            <text id="lab2-rate-display" x="62" y="37" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#fbbf24" style="font-variant-numeric: tabular-nums;">— M/s</text>
+          </g>
+
+          <!-- 범례 (하단) -->
+          <g transform="translate(60, 390)">
+            <circle cx="10" cy="0" r="6" fill="#dc2626" stroke="#7f1d1d" stroke-width="1"/>
+            <text x="22" y="4" font-size="12" font-weight="600" fill="#475569">NO</text>
+            <circle cx="88" cy="0" r="4" fill="#60a5fa" stroke="#1e40af" stroke-width="1"/>
+            <text x="98" y="4" font-size="12" font-weight="600" fill="#475569">H₂</text>
+            <circle cx="168" cy="0" r="5" fill="#10b981" stroke="#065f46" stroke-width="1"/>
+            <text x="178" y="4" font-size="12" font-weight="600" fill="#475569">생성물 (N₂ + H₂O)</text>
+          </g>
+        </svg>
+      </div>
     </div>
+
+    <!-- ============ 분석 (3 실험 모두 완료 시 공개) ============ -->
+    <div id="lab2-analysis-wrap" hidden>
+
+    <!-- 실험 결과 테이블 -->
+    <div class="ui-panel" style="margin-top: clamp(16px, 2vw, 24px);">
+      <h3>측정 결과 정리</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>실험</th>
+              <th>[NO]<sub>0</sub> (M)</th>
+              <th>[H<sub>2</sub>]<sub>0</sub> (M)</th>
+              <th>측정된 초기 반응 속도 (M/s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="exp-num">1</td><td>0.1</td><td>0.1</td><td class="rate-cell">1.5 × 10<sup>−3</sup></td></tr>
+            <tr><td class="exp-num">2</td><td>0.1</td><td>0.2</td><td class="rate-cell">3.0 × 10<sup>−3</sup></td></tr>
+            <tr><td class="exp-num">3</td><td>0.2</td><td>0.2</td><td class="rate-cell">1.2 × 10<sup>−2</sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 비교 분석 (2 카드) -->
+    <div class="lab2-compare-grid">
+      <div class="ui-panel compare-card">
+        <div class="compare-head">
+          <span class="tag tag-blue">실험 1 ↔ 2</span>
+          <h3>[H<sub>2</sub>]에 대한 반응차수</h3>
+        </div>
+        <p class="subtle">[NO]를 고정하고 [H<sub>2</sub>]만 변화시킨 실험을 비교합니다.</p>
+        <div class="ratio-rows">
+          <div class="ratio-row">
+            <span class="ratio-label">[NO]</span>
+            <span class="ratio-val">0.1 M → 0.1 M</span>
+            <span class="ratio-badge neutral">고정</span>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">[H<sub>2</sub>]</span>
+            <span class="ratio-val">0.1 M → 0.2 M</span>
+            <span class="ratio-badge change">× 2</span>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">속도</span>
+            <span class="ratio-val">1.5×10<sup>−3</sup> → 3.0×10<sup>−3</sup></span>
+            <span class="ratio-badge change">× 2</span>
+          </div>
+        </div>
+        <div class="ratio-conclusion">
+          <span class="math">2<sup>b</sup> = 2</span>
+          <span class="arrow">→</span>
+          <span class="math"><strong>b = 1</strong></span>
+        </div>
+        <div class="conclusion-text blue">
+          [H<sub>2</sub>]에 대한 반응차수: <strong>1차</strong>
+        </div>
+      </div>
+
+      <div class="ui-panel compare-card">
+        <div class="compare-head">
+          <span class="tag tag-green">실험 2 ↔ 3</span>
+          <h3>[NO]에 대한 반응차수</h3>
+        </div>
+        <p class="subtle">[H<sub>2</sub>]를 고정하고 [NO]만 변화시킨 실험을 비교합니다.</p>
+        <div class="ratio-rows">
+          <div class="ratio-row">
+            <span class="ratio-label">[H<sub>2</sub>]</span>
+            <span class="ratio-val">0.2 M → 0.2 M</span>
+            <span class="ratio-badge neutral">고정</span>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">[NO]</span>
+            <span class="ratio-val">0.1 M → 0.2 M</span>
+            <span class="ratio-badge change">× 2</span>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">속도</span>
+            <span class="ratio-val">3.0×10<sup>−3</sup> → 1.2×10<sup>−2</sup></span>
+            <span class="ratio-badge change">× 4</span>
+          </div>
+        </div>
+        <div class="ratio-conclusion">
+          <span class="math">2<sup>a</sup> = 4</span>
+          <span class="arrow">→</span>
+          <span class="math"><strong>a = 2</strong></span>
+        </div>
+        <div class="conclusion-text green">
+          [NO]에 대한 반응차수: <strong>2차</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- 확인 문제 -->
+    <div class="ui-panel quiz-panel">
+      <h3>확인 문제</h3>
+      <p class="subtle">위의 분석을 바탕으로 반응차수를 선택하세요.</p>
+      <div class="quiz-q" data-q="no" data-correct="2">
+        <label><strong>1.</strong> [NO]에 대한 반응차수 <em>a</em> = ?</label>
+        <div class="quiz-options">
+          <button data-a="0">0</button>
+          <button data-a="1">1</button>
+          <button data-a="2">2</button>
+          <button data-a="3">3</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="h2" data-correct="1">
+        <label><strong>2.</strong> [H<sub>2</sub>]에 대한 반응차수 <em>b</em> = ?</label>
+        <div class="quiz-options">
+          <button data-a="0">0</button>
+          <button data-a="1">1</button>
+          <button data-a="2">2</button>
+          <button data-a="3">3</button>
+        </div>
+      </div>
+      <div class="quiz-feedback" id="quiz-feedback"></div>
+    </div>
+
+    <!-- 최종 결론 (퀴즈 전부 정답 시 reveal) -->
+    <div class="ui-panel result-panel" id="lab2-result" hidden>
+      <span class="label-xs">최종 반응속도식</span>
+      <div class="rate-law-big">v = <em>k</em> [NO]<sup>2</sup> [H<sub>2</sub>]</div>
+      <div class="result-stats">
+        <div class="stat-card">
+          <span class="label-xs">전체 반응차수</span>
+          <div class="big">3<span class="unit">차</span></div>
+          <div class="sub">a + b = 2 + 1 = 3</div>
+        </div>
+        <div class="stat-card">
+          <span class="label-xs">속도 상수 k</span>
+          <div class="big">1.5</div>
+          <div class="unit">M<sup>−2</sup> · s<sup>−1</sup></div>
+        </div>
+      </div>
+      <div class="formula-explain">
+        k = v / ([NO]<sup>2</sup>[H<sub>2</sub>]) = 1.5×10<sup>−3</sup> / (0.1<sup>2</sup> × 0.1) = <strong>1.5 M<sup>−2</sup>·s<sup>−1</sup></strong><br>
+        <span class="subtle">검증 — 실험 3: 1.5 × 0.2<sup>2</sup> × 0.2 = 1.2×10<sup>−2</sup> M/s ✓</span>
+      </div>
+    </div>
+
+    </div><!-- /lab2-analysis-wrap -->
   </section>
 
 </div>
@@ -1876,6 +2496,352 @@ formulaToggle.addEventListener('click', () => {
 
 // 초기 버튼 상태
 updateButtons();
+
+// ============================================================ LAB 2 — 실험 시뮬레이터
+const LAB2_EXPERIMENTS = [
+  { id: 1, NO: 0.1, H2: 0.1, rate: 1.5e-3, rateLabel: '1.5 × 10⁻³', noCount: 6, h2Count: 6,  reactionsIn8s: 3 },
+  { id: 2, NO: 0.1, H2: 0.2, rate: 3.0e-3, rateLabel: '3.0 × 10⁻³', noCount: 6, h2Count: 12, reactionsIn8s: 6 },
+  { id: 3, NO: 0.2, H2: 0.2, rate: 1.2e-2, rateLabel: '1.2 × 10⁻²', noCount: 12, h2Count: 12, reactionsIn8s: 24 }
+];
+const LAB2_DURATION = 8; // 시뮬레이션 시간 (초)
+const LAB2_VESSEL = { x0: 60, y0: 160, x1: 500, y1: 350 };
+
+const lab2 = {
+  selectedExp: 1,
+  phase: 'setup',  // 'setup' | 'running' | 'done'
+  speed: 1,
+  tSim: 0,
+  lastTs: 0,
+  rafId: null,
+  particles: [],
+  productCount: 0,
+  reactionIdx: 0,
+  results: { 1: null, 2: null, 3: null }
+};
+
+const lab2ParticleGroup = document.getElementById('lab2-particles');
+const lab2SwDisplay = document.getElementById('lab2-sw-display');
+const lab2ProdDisplay = document.getElementById('lab2-prod-display');
+const lab2RateDisplay = document.getElementById('lab2-rate-display');
+const lab2CondNO = document.getElementById('lab2-cond-no');
+const lab2CondH2 = document.getElementById('lab2-cond-h2');
+const lab2StartBtn = document.getElementById('lab2-start');
+const lab2ResetBtn = document.getElementById('lab2-reset');
+const lab2SwBox = document.getElementById('lab2-sw');
+
+// 실험 선택
+document.querySelectorAll('.exp-select-card').forEach(card => {
+  card.addEventListener('click', () => {
+    if (lab2.phase === 'running') return;
+    const id = parseInt(card.dataset.exp, 10);
+    lab2.selectedExp = id;
+    document.querySelectorAll('.exp-select-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    lab2UpdateCondDisplay();
+    lab2InitParticles();
+  });
+});
+
+// 재생 속도
+document.querySelectorAll('#lab2-speed-group .selection-card').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#lab2-speed-group .selection-card').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    lab2.speed = parseInt(b.dataset.speed, 10);
+  });
+});
+
+lab2StartBtn.addEventListener('click', () => {
+  if (lab2.phase === 'running') return;
+  lab2StartExperiment();
+});
+lab2ResetBtn.addEventListener('click', lab2ResetAll);
+
+function lab2UpdateCondDisplay() {
+  const e = LAB2_EXPERIMENTS[lab2.selectedExp - 1];
+  lab2CondNO.textContent = `[NO] = ${e.NO.toFixed(1)} M`;
+  lab2CondH2.textContent = `[H₂] = ${e.H2.toFixed(1)} M`;
+  // 이미 완료된 실험이면 속도 표시
+  if (lab2.results[lab2.selectedExp]) {
+    lab2RateDisplay.textContent = lab2.results[lab2.selectedExp] + ' M/s';
+  } else {
+    lab2RateDisplay.textContent = '— M/s';
+  }
+}
+
+function lab2Rand(min, max) { return min + Math.random() * (max - min); }
+
+function lab2CreateCircle(cx, cy, r, fill, stroke) {
+  const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  c.setAttribute('cx', cx);
+  c.setAttribute('cy', cy);
+  c.setAttribute('r', r);
+  c.setAttribute('fill', fill);
+  c.setAttribute('stroke', stroke);
+  c.setAttribute('stroke-width', '1');
+  return c;
+}
+
+function lab2InitParticles() {
+  const e = LAB2_EXPERIMENTS[lab2.selectedExp - 1];
+  lab2ParticleGroup.innerHTML = '';
+  lab2.particles = [];
+  // NO (빨강)
+  for (let i = 0; i < e.noCount; i++) {
+    const p = {
+      type: 'NO',
+      x: lab2Rand(LAB2_VESSEL.x0 + 8, LAB2_VESSEL.x1 - 8),
+      y: lab2Rand(LAB2_VESSEL.y0 + 8, LAB2_VESSEL.y1 - 8),
+      vx: lab2Rand(-1.4, 1.4),
+      vy: lab2Rand(-1.4, 1.4),
+      r: 6
+    };
+    p.el = lab2CreateCircle(p.x, p.y, p.r, '#dc2626', '#7f1d1d');
+    lab2ParticleGroup.appendChild(p.el);
+    lab2.particles.push(p);
+  }
+  // H₂ (파랑, 작음)
+  for (let i = 0; i < e.h2Count; i++) {
+    const p = {
+      type: 'H2',
+      x: lab2Rand(LAB2_VESSEL.x0 + 8, LAB2_VESSEL.x1 - 8),
+      y: lab2Rand(LAB2_VESSEL.y0 + 8, LAB2_VESSEL.y1 - 8),
+      vx: lab2Rand(-1.8, 1.8),
+      vy: lab2Rand(-1.8, 1.8),
+      r: 4
+    };
+    p.el = lab2CreateCircle(p.x, p.y, p.r, '#60a5fa', '#1e40af');
+    lab2ParticleGroup.appendChild(p.el);
+    lab2.particles.push(p);
+  }
+  lab2.productCount = 0;
+  lab2ProdDisplay.textContent = '0';
+}
+
+function lab2StartExperiment() {
+  const id = lab2.selectedExp;
+  // 이미 한 실험이면 다시 초기화
+  lab2InitParticles();
+  lab2.phase = 'running';
+  lab2.tSim = 0;
+  lab2.lastTs = 0;
+  lab2.reactionIdx = 0;
+  lab2.productCount = 0;
+  lab2SwBox.classList.remove('stopped');
+  lab2SwDisplay.textContent = '00:00.0';
+  lab2RateDisplay.textContent = '측정 중...';
+  lab2ProdDisplay.textContent = '0';
+  // 실험 선택 카드 잠금
+  document.querySelectorAll('.exp-select-card').forEach(c => c.disabled = true);
+  // 버튼 상태
+  lab2StartBtn.disabled = true;
+  lab2StartBtn.textContent = '실험 진행 중...';
+  lab2ResetBtn.disabled = true;
+  // 상태 업데이트
+  const statusEl = document.querySelector(`.exp-status[data-status="${id}"]`);
+  statusEl.textContent = '진행 중';
+  statusEl.className = 'exp-status running';
+  lab2.rafId = requestAnimationFrame(lab2Tick);
+}
+
+function lab2Tick(ts) {
+  if (lab2.phase !== 'running') return;
+  if (!lab2.lastTs) lab2.lastTs = ts;
+  const dt = (ts - lab2.lastTs) / 1000 * lab2.speed;
+  lab2.lastTs = ts;
+  lab2.tSim = Math.min(LAB2_DURATION, lab2.tSim + dt);
+
+  // 입자 이동
+  const frameScale = Math.min(dt * 60, 3); // 큰 dt 방지
+  lab2.particles.forEach(p => {
+    p.x += p.vx * frameScale;
+    p.y += p.vy * frameScale;
+    if (p.x < LAB2_VESSEL.x0 + p.r) { p.x = LAB2_VESSEL.x0 + p.r; p.vx = Math.abs(p.vx); }
+    if (p.x > LAB2_VESSEL.x1 - p.r) { p.x = LAB2_VESSEL.x1 - p.r; p.vx = -Math.abs(p.vx); }
+    if (p.y < LAB2_VESSEL.y0 + p.r) { p.y = LAB2_VESSEL.y0 + p.r; p.vy = Math.abs(p.vy); }
+    if (p.y > LAB2_VESSEL.y1 - p.r) { p.y = LAB2_VESSEL.y1 - p.r; p.vy = -Math.abs(p.vy); }
+    p.el.setAttribute('cx', p.x);
+    p.el.setAttribute('cy', p.y);
+  });
+
+  // 반응 이벤트 (균등한 간격으로 생성물 스폰)
+  const e = LAB2_EXPERIMENTS[lab2.selectedExp - 1];
+  const expectedReactions = Math.floor((lab2.tSim / LAB2_DURATION) * e.reactionsIn8s);
+  while (lab2.reactionIdx < expectedReactions) {
+    lab2SpawnProduct();
+    lab2.reactionIdx++;
+  }
+
+  // 디스플레이 업데이트
+  lab2SwDisplay.textContent = fmtTime(lab2.tSim);
+  lab2ProdDisplay.textContent = String(lab2.productCount);
+
+  if (lab2.tSim >= LAB2_DURATION) {
+    lab2FinishExperiment();
+    return;
+  }
+  lab2.rafId = requestAnimationFrame(lab2Tick);
+}
+
+function lab2SpawnProduct() {
+  const x = lab2Rand(LAB2_VESSEL.x0 + 12, LAB2_VESSEL.x1 - 12);
+  const y = lab2Rand(LAB2_VESSEL.y0 + 12, LAB2_VESSEL.y1 - 12);
+  // 반응 지점에서 번쩍이는 플래시
+  const flash = lab2CreateCircle(x, y, 14, 'rgba(250, 204, 21, 0.6)', 'none');
+  flash.setAttribute('stroke-width', '0');
+  lab2ParticleGroup.appendChild(flash);
+  flash.animate(
+    [{ opacity: 0.9, r: 6 }, { opacity: 0, r: 22 }],
+    { duration: 500, easing: 'ease-out' }
+  );
+  setTimeout(() => flash.remove(), 500);
+  // 생성물 입자 (짧게 머물다 상승·페이드)
+  const p = lab2CreateCircle(x, y, 5, '#10b981', '#065f46');
+  lab2ParticleGroup.appendChild(p);
+  const duration = 2000;
+  const startY = y;
+  const startTs = performance.now();
+  (function floatUp() {
+    const elapsed = performance.now() - startTs;
+    if (elapsed >= duration) { p.remove(); return; }
+    const t = elapsed / duration;
+    p.setAttribute('cy', startY - t * 40);
+    p.setAttribute('opacity', String(1 - t));
+    requestAnimationFrame(floatUp);
+  })();
+  lab2.productCount++;
+}
+
+function lab2FinishExperiment() {
+  const id = lab2.selectedExp;
+  const e = LAB2_EXPERIMENTS[id - 1];
+  lab2.phase = 'done';
+  cancelAnimationFrame(lab2.rafId);
+  lab2.rafId = null;
+  lab2SwDisplay.textContent = fmtTime(LAB2_DURATION);
+  lab2SwBox.classList.add('stopped');
+  lab2RateDisplay.textContent = e.rateLabel + ' M/s';
+  // 결과 기록
+  lab2.results[id] = e.rateLabel;
+  const statusEl = document.querySelector(`.exp-status[data-status="${id}"]`);
+  statusEl.textContent = e.rateLabel + ' M/s';
+  statusEl.className = 'exp-status done';
+  // 버튼 상태 복구
+  document.querySelectorAll('.exp-select-card').forEach(c => c.disabled = false);
+  lab2StartBtn.disabled = false;
+  lab2ResetBtn.disabled = false;
+  // 다음 실험 유도
+  const remaining = [1, 2, 3].filter(n => !lab2.results[n]);
+  if (remaining.length > 0) {
+    const next = remaining[0];
+    lab2StartBtn.textContent = `실험 ${next} 시작`;
+    // 다음 실험 자동 선택
+    lab2.selectedExp = next;
+    document.querySelectorAll('.exp-select-card').forEach(c => {
+      c.classList.toggle('active', parseInt(c.dataset.exp, 10) === next);
+    });
+    lab2UpdateCondDisplay();
+    lab2InitParticles();
+  } else {
+    // 모든 실험 완료 — 분석 패널 공개
+    lab2StartBtn.textContent = '모든 실험 완료';
+    lab2StartBtn.disabled = true;
+    lab2RevealAnalysis();
+  }
+}
+
+function lab2RevealAnalysis() {
+  const wrap = document.getElementById('lab2-analysis-wrap');
+  wrap.hidden = false;
+  wrap.classList.add('fade-in');
+  setTimeout(() => {
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 250);
+}
+
+function lab2ResetAll() {
+  if (lab2.rafId) cancelAnimationFrame(lab2.rafId);
+  lab2.phase = 'setup';
+  lab2.tSim = 0;
+  lab2.lastTs = 0;
+  lab2.rafId = null;
+  lab2.productCount = 0;
+  lab2.results = { 1: null, 2: null, 3: null };
+  lab2SwDisplay.textContent = '00:00.0';
+  lab2SwBox.classList.remove('stopped');
+  lab2ProdDisplay.textContent = '0';
+  lab2.selectedExp = 1;
+  document.querySelectorAll('.exp-select-card').forEach(c => {
+    c.disabled = false;
+    c.classList.toggle('active', parseInt(c.dataset.exp, 10) === 1);
+  });
+  document.querySelectorAll('.exp-status').forEach(s => {
+    s.textContent = '대기';
+    s.className = 'exp-status';
+  });
+  lab2StartBtn.disabled = false;
+  lab2StartBtn.textContent = '실험 시작';
+  lab2ResetBtn.disabled = false;
+  document.getElementById('lab2-analysis-wrap').hidden = true;
+  // 퀴즈 상태 초기화
+  document.querySelectorAll('#screen-lab2 .quiz-options button').forEach(b => {
+    b.classList.remove('correct', 'wrong');
+  });
+  lab2QuizState.no = null;
+  lab2QuizState.h2 = null;
+  const fb = document.getElementById('quiz-feedback');
+  if (fb) { fb.textContent = ''; fb.className = 'quiz-feedback'; }
+  const result = document.getElementById('lab2-result');
+  if (result) result.hidden = true;
+  lab2UpdateCondDisplay();
+  lab2InitParticles();
+}
+
+// 초기 실행
+lab2UpdateCondDisplay();
+lab2InitParticles();
+
+// ============================================================ LAB 2 — 반응차수 퀴즈
+const lab2QuizState = { no: null, h2: null };
+
+document.querySelectorAll('#screen-lab2 .quiz-q').forEach(q => {
+  const correct = parseInt(q.dataset.correct, 10);
+  const qid = q.dataset.q;
+  q.querySelectorAll('.quiz-options button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = parseInt(btn.dataset.a, 10);
+      if (val === correct) {
+        // 정답
+        q.querySelectorAll('.quiz-options button').forEach(b => {
+          b.classList.remove('wrong', 'correct');
+        });
+        btn.classList.add('correct');
+        lab2QuizState[qid] = true;
+        checkLab2Complete();
+      } else {
+        // 오답
+        btn.classList.remove('correct');
+        btn.classList.add('wrong');
+        setTimeout(() => btn.classList.remove('wrong'), 500);
+        lab2QuizState[qid] = false;
+      }
+    });
+  });
+});
+
+function checkLab2Complete() {
+  if (lab2QuizState.no === true && lab2QuizState.h2 === true) {
+    const fb = document.getElementById('quiz-feedback');
+    fb.textContent = '정답입니다! 최종 반응속도식을 확인하세요.';
+    fb.className = 'quiz-feedback show success';
+    const result = document.getElementById('lab2-result');
+    result.hidden = false;
+    result.classList.add('fade-in');
+    setTimeout(() => {
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+  }
+}
 
 </script>
 </body>
