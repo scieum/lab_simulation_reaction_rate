@@ -1251,12 +1251,50 @@ function navigate(target) {
 }
 
 // ============================================================ CORE FNs
+// 측정점을 지나는 부드러운 곡선 (Fritsch–Carlson 단조 3차 Hermite 보간).
+// 단조 보간이라 측정값을 넘어서는 오버슈트가 없고, 도함수(기울기)가 연속적으로
+// 변하므로 순간 반응 속도(접선의 기울기)가 시각에 따라 자연스럽게 달라진다.
+const TANGENTS = (function () {
+  const n = TIMES.length;
+  const d = new Array(n - 1);                 // 구간별 할선 기울기
+  for (let k = 0; k < n - 1; k++) d[k] = (PRESSURES[k + 1] - PRESSURES[k]) / (TIMES[k + 1] - TIMES[k]);
+  const m = new Array(n);                      // 각 측정점에서의 접선 기울기
+  m[0] = d[0];
+  m[n - 1] = d[n - 2];
+  for (let k = 1; k < n - 1; k++) {
+    m[k] = (d[k - 1] * d[k] <= 0) ? 0 : (d[k - 1] + d[k]) / 2;
+  }
+  for (let k = 0; k < n - 1; k++) {
+    if (d[k] === 0) { m[k] = 0; m[k + 1] = 0; continue; }  // 평탄 구간 → 기울기 0
+    const a = m[k] / d[k], b = m[k + 1] / d[k];
+    const s = a * a + b * b;
+    if (s > 9) {                                // 단조성 유지를 위한 스케일 제한
+      const tau = 3 / Math.sqrt(s);
+      m[k] = tau * a * d[k];
+      m[k + 1] = tau * b * d[k];
+    }
+  }
+  return m;
+})();
+
+function segIndex(t) {
+  let i = Math.floor(t / 10);
+  if (i < 0) i = 0;
+  if (i > TIMES.length - 2) i = TIMES.length - 2;
+  return i;
+}
+
 function pressureAt(t) {
   if (t <= 0) return PRESSURES[0];
   if (t >= T_MAX) return PRESSURES[PRESSURES.length - 1];
-  const i = Math.floor(t / 10);
-  const f = (t - TIMES[i]) / 10;
-  return PRESSURES[i] + f * (PRESSURES[i + 1] - PRESSURES[i]);
+  const i = segIndex(t);
+  const h = TIMES[i + 1] - TIMES[i];
+  const s = (t - TIMES[i]) / h, s2 = s * s, s3 = s2 * s;
+  const h00 = 2 * s3 - 3 * s2 + 1;
+  const h10 = s3 - 2 * s2 + s;
+  const h01 = -2 * s3 + 3 * s2;
+  const h11 = s3 - s2;
+  return h00 * PRESSURES[i] + h10 * h * TANGENTS[i] + h01 * PRESSURES[i + 1] + h11 * h * TANGENTS[i + 1];
 }
 
 function rateAvg(t1, t2) {
@@ -1264,16 +1302,22 @@ function rateAvg(t1, t2) {
   return (pressureAt(t2) - pressureAt(t1)) / (t2 - t1);
 }
 
+// 부드러운 곡선의 도함수 → 그 시각의 순간 반응 속도(접선의 기울기)
 function rateInstant(t) {
-  const h = 0.5;
-  const a = Math.max(0, t - h);
-  const b = Math.min(T_MAX, t + h);
-  if (b <= a) return 0;
-  return (pressureAt(b) - pressureAt(a)) / (b - a);
+  const tt = Math.max(0, Math.min(T_MAX, t));
+  const i = segIndex(tt);
+  const h = TIMES[i + 1] - TIMES[i];
+  const s = (tt - TIMES[i]) / h, s2 = s * s;
+  const dh00 = 6 * s2 - 6 * s;
+  const dh10 = 3 * s2 - 4 * s + 1;
+  const dh01 = -6 * s2 + 6 * s;
+  const dh11 = 3 * s2 - 2 * s;
+  const dPds = dh00 * PRESSURES[i] + dh10 * h * TANGENTS[i] + dh01 * PRESSURES[i + 1] + dh11 * h * TANGENTS[i + 1];
+  return dPds / h;
 }
 
 function rateInitial() {
-  return rateAvg(0, 10);
+  return rateInstant(0);
 }
 
 function toMolPerLs(r) {
@@ -1618,10 +1662,12 @@ function renderGraph() {
   });
   graphSvg.appendChild(ylabel);
 
-  // Curve (piecewise linear through data points)
+  // Curve — 측정점을 지나는 부드러운 단조 곡선 (pressureAt 스플라인을 촘촘히 샘플)
   let path = '';
-  for (let i = 0; i < TIMES.length; i++) {
-    path += (i === 0 ? 'M' : 'L') + ' ' + tToX(TIMES[i]) + ',' + pToY(PRESSURES[i]) + ' ';
+  const SAMPLES = 120;
+  for (let k = 0; k <= SAMPLES; k++) {
+    const t = (k / SAMPLES) * T_MAX;
+    path += (k === 0 ? 'M' : 'L') + ' ' + tToX(t).toFixed(2) + ',' + pToY(pressureAt(t)).toFixed(2) + ' ';
   }
   graphSvg.appendChild(el('path', { d: path, class: 'graph-curve' }));
 
