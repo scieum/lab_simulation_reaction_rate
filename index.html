@@ -99,62 +99,66 @@
     margin: 0 auto;
     padding: clamp(20px, 2.5vw, 36px) clamp(16px, 3vw, 48px) clamp(32px, 4vw, 60px);
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   /* ===== Screens ===== */
   .screen { display: none; }
   .screen.active { display: block; }
 
-  /* ===== Home (랜딩 페이지) — 화면 꽉 채우고 viewport에 반응 ===== */
+  /* ===== Home (랜딩 페이지) — 스크롤 없이 한 화면(viewport)에 모두 채움 ===== */
   #screen-home.active {
-    min-height: calc(100vh - 72px);
+    /* .app 상하 패딩을 뺀 높이를 채워 내부 콘텐츠를 수직 중앙 정렬 */
+    min-height: calc(100vh - clamp(52px, 6.5vw, 96px));
+    min-height: calc(100dvh - clamp(52px, 6.5vw, 96px));
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
   }
   .home-wrap {
     position: relative;
     z-index: 1;
-    padding: clamp(20px, 3vw, 48px) 0 clamp(16px, 2vw, 32px);
+    padding: clamp(8px, 2vh, 24px) 0;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
   }
   .home-header {
     text-align: center;
-    padding: clamp(12px, 2vw, 24px) clamp(16px, 3vw, 32px) clamp(24px, 3.5vw, 40px);
+    padding: 0 clamp(16px, 3vw, 32px) clamp(14px, 3vh, 36px);
     position: relative;
   }
   .home-header .eyebrow {
     display: inline-block;
     color: var(--primary-color);
     font-weight: 800;
-    font-size: 0.78rem;
+    font-size: clamp(0.64rem, 1.5vh, 0.78rem);
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    margin-bottom: 18px;
+    margin-bottom: clamp(8px, 1.6vh, 18px);
   }
+  /* 화면이 좁거나 낮아도 넘치지 않도록 vw·vh 상한을 함께 적용 */
   .home-header h1.brand {
-    font-size: clamp(3.2rem, 7vw, 5rem);
+    font-size: min(4.4rem, 9vw, 9vh);
     font-weight: 900;
     letter-spacing: -0.04em;
     line-height: 1.0;
-    margin: 0 0 18px;
+    margin: 0 0 clamp(8px, 1.6vh, 18px);
     color: var(--text-strong);
   }
   .home-header h2.subject {
-    font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+    font-size: min(1.85rem, 5vw, 3.4vh);
     font-weight: 700;
     color: var(--text-main);
-    margin: 0 0 32px;
+    margin: 0 0 clamp(10px, 2.2vh, 30px);
     letter-spacing: -0.02em;
   }
   .home-header p.lead {
     color: var(--text-sub);
     font-weight: 500;
-    font-size: 0.98rem;
+    font-size: clamp(0.84rem, 1.9vh, 0.98rem);
     margin: 0 auto;
-    line-height: 1.85;
+    line-height: 1.65;
     max-width: 560px;
   }
 
@@ -178,13 +182,13 @@
     border: 1px solid var(--border-color);
     border-radius: 1.5rem;
     box-shadow: 0 4px 24px -8px rgba(15, 23, 42, 0.08);
-    padding: clamp(24px, 2.5vw, 40px) clamp(22px, 2.3vw, 36px);
+    padding: clamp(20px, 2.4vw, 36px) clamp(20px, 2.3vw, 34px);
     text-align: left;
     cursor: pointer;
-    min-height: 340px;
+    min-height: min(320px, 36vh);
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: clamp(10px, 1.8vh, 18px);
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -267,7 +271,7 @@
   /* 홈 푸터 */
   .home-footer {
     text-align: center;
-    padding: 60px 20px 20px;
+    padding: clamp(20px, 4vh, 56px) 20px 4px;
     font-size: 0.85rem;
     color: var(--text-sub);
     font-weight: 500;
@@ -1273,6 +1277,14 @@ const TANGENTS = (function () {
       m[k] = tau * a * d[k];
       m[k + 1] = tau * b * d[k];
     }
+  }
+  // 반응 속도는 시작 직후(t=0)가 가장 빠르고 이후 감소해야 한다.
+  // 기본 보간은 첫 구간 안에서 기울기가 살짝 커졌다 줄어 t=0가 최대가 아니게 되므로,
+  // 첫 측정점의 접선을 키워 도함수가 t=0에서 최대가 되도록(이후 단조 감소) 보정한다.
+  if (d[0] > d[1]) {
+    const lo = (6 * d[0] - 2 * m[1]) / 4;       // q'(0) ≤ 0 (t=0에서 기울기 최대)
+    const hi = 3 * d[0] - 2 * m[1];             // 단조성(오버슈트 방지) 상한
+    if (m[0] < lo) m[0] = Math.min(lo, hi);
   }
   return m;
 })();
